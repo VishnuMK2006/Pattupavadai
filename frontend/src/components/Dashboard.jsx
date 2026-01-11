@@ -81,10 +81,33 @@ function Row({ order }) {
                 <TableBody>
                   {order.items.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell component="th" scope="row" sx={{ color: 'white' }}>
-                        {item.product_name}
+                      <TableCell component="th" scope="row">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box 
+                            component="img"
+                            src={`/images/${order._id}_${index}.png`}
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = "https://placehold.co/100x100?text=Generating...";
+                            }}
+                            sx={{
+                              width: 80,
+                              height: 80,
+                              borderRadius: 2,
+                              objectFit: 'cover',
+                              background: 'rgba(255,255,255,0.05)'
+                            }}
+                          />
+                          <Box>
+                            <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                               {item.product_name}
+                            </Typography>
+                             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                               {item.fabric_type}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </TableCell>
-                      <TableCell sx={{ color: 'rgba(255,255,255,0.7)' }}>{item.fabric_type}</TableCell>
                       <TableCell sx={{ color: 'rgba(255,255,255,0.7)' }}>{item.dress_type}</TableCell>
                       <TableCell sx={{ color: 'rgba(255,255,255,0.7)' }}>
                         {item.sleeve_type} • {item.neck_design}

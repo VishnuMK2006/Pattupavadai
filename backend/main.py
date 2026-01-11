@@ -2,11 +2,14 @@ from typing import Dict
 import os
 import secrets
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
+import httpx
+from openai import OpenAI
+import asyncio
 
 app = FastAPI(title="Pattupavadai Auth API", version="0.1.0")
 
@@ -148,7 +151,7 @@ async def login(payload: LoginRequest):
 
 
 @app.post("/orders", status_code=201)
-async def create_order(payload: OrderRequest):
+async def create_order(payload: OrderRequest, background_tasks: BackgroundTasks):
     # Verify user exists
     user = await get_user(payload.user_email)
     if not user:
@@ -159,7 +162,65 @@ async def create_order(payload: OrderRequest):
     order_doc["items"] = [item.dict() for item in payload.items]
     
     result = await orders_col.insert_one(order_doc)
-    return {"message": "Order created successfully", "orderId": str(result.inserted_id)}
+    order_id = str(result.inserted_id)
+
+    # Schedule image generation for each item
+    for index, item in enumerate(payload.items):
+         background_tasks.add_task(generate_and_save_image, order_id, index, item)
+
+    return {"message": "Order created successfully", "orderId": order_id}
+
+async def generate_and_save_image(order_id: str, index: int, item: OrderItem):
+    try:
+        api_key = os.environ.get("api_key")
+        if not api_key:
+            print("OPENAI_API_KEY not set, skipping image generation")
+            return
+
+        client = OpenAI(api_key=api_key)
+        
+        prompt = f"""
+        A high-quality, photorealistic fashion design illustration of a {item.product_name}.
+        Details:
+        - Fabric: {item.fabric_type or 'Silk'} ({item.fabric_name or ''})
+        - Dress Type: {item.dress_type or 'Standard'}
+        - Top Style: {item.top_style}
+        - Bottom Style: {item.bottom_style}
+        - Colors: Top is {item.top_color}, Bottom is {item.bottom_color} with accent {item.accent}
+        - Sleeve: {item.sleeve_type}
+        - Neck: {item.neck_design}
+        - Border: {item.border_design}
+        
+        The image should be clean, focused on the outfit, with a neutral background.
+        """
+
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+
+        image_url = response.data[0].url
+        
+        if image_url:
+            # Download and save the image
+            async with httpx.AsyncClient() as http_client:
+                r = await http_client.get(image_url)
+                if r.status_code == 200:
+                    # Construct path: frontend/public/images/orderid_index.png
+                    # Taking advantage of relative path structure or ensure D: drive path
+                    save_path = f"../frontend/public/images/{order_id}_{index}.png"
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    with open(save_path, "wb") as f:
+                        f.write(r.content)
+                    print(f"Generated and saved image for {order_id} item {index}")
+                else:
+                     print(f"Failed to download image for {order_id} item {index}")
+
+    except Exception as e:
+        print(f"Error generating image for {order_id} item {index}: {e}")
 
 
 @app.get("/orders/{user_email}")
