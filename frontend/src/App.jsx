@@ -5,9 +5,11 @@ import AuthForm from "./components/AuthForm";
 import ProductSelect from "./components/ProductSelect";
 import Preview from "./components/Preview";
 import Sidebar from "./components/Sidebar";
+import AdminPanel from "./components/AdminPanel";
 import PaymentModal from "./components/PaymentModal";
 import CartDrawer from "./components/CartDrawer";
 import Dashboard from "./components/Dashboard";
+
 import {
   Box,
   Typography,
@@ -230,8 +232,13 @@ function App() {
 
   if (!user) {
     return (
-          <AuthForm onAuthSuccess={handleAuthSuccess} />
+      <AuthForm onAuthSuccess={handleAuthSuccess} />
     );
+  }
+
+  // Admin flow
+  if (user.email === "admin@gmail.com") {
+    return <AdminPanel onSignOut={handleSignOut} />;
   }
 
   if (!selectedProduct) {
