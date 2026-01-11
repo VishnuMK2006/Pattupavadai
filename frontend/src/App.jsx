@@ -4,6 +4,28 @@ import Scene from "./components/Scene";
 import AuthForm from "./components/AuthForm";
 import ProductSelect from "./components/ProductSelect";
 import Preview from "./components/Preview";
+import {
+  Box,
+  Drawer,
+  Typography,
+  Button,
+  Paper,
+  Stack,
+  Divider,
+  Chip,
+  AppBar,
+  Toolbar,
+  Avatar,
+  IconButton,
+} from '@mui/material';
+import {
+  CheckroomOutlined,
+  Style,
+  Checkroom,
+  Person,
+  Logout,
+  SwapHoriz,
+} from '@mui/icons-material';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -102,19 +124,7 @@ function App() {
 
   if (!user) {
     return (
-      <div className="auth-shell">
-        <div className="auth-panel">
-          <div className="auth-hero">
-            <p className="eyebrow">Pattupavadai</p>
-            <h1>Login to explore</h1>
-            <p className="muted">
-              Sign in or create an account to save your outfits and shipping
-              details before jumping into the 3D dresser.
-            </p>
-          </div>
           <AuthForm onAuthSuccess={handleAuthSuccess} />
-        </div>
-      </div>
     );
   }
 
@@ -137,87 +147,429 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Pattupavadai</p>
-          <strong>3D Dresser</strong>
-        </div>
-        <div className="topbar-right">
-          {activeProduct && (
-            <div className="product-chip" style={{ borderColor: activeProduct.accent }}>
-              <span className="product-dot" style={{ background: activeProduct.accent }}></span>
-              <div>
-                <span className="product-label">Selected</span>
-                <span className="product-name">{activeProduct.name}</span>
-              </div>
-              <button className="ghost" onClick={handleChangeProduct}>Change</button>
-            </div>
-          )}
-          <div className="user-chip">
-            <div>
-              <span className="user-name">{user.name}</span>
-              <span className="user-email">{user.email}</span>
-            </div>
-            <button className="ghost" onClick={handleSignOut}>Sign out</button>
-          </div>
-        </div>
-      </header>
+      <AppBar
+        position="fixed"
+        sx={{
+          background: 'linear-gradient(135deg, #0f1419 0%, #1a2332 100%)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
+      >
+        <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                fontWeight: 600,
+              }}
+            >
+              Pattupavadai
+            </Typography>
+            <Typography variant="h6" fontWeight={700} sx={{ color: 'white', fontSize: '18px' }}>
+              3D Dresser
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {activeProduct && (
+              <Paper
+                elevation={0}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 2,
+                  py: 1,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: `2px solid ${activeProduct.accent}`,
+                  borderRadius: 3,
+                  backdropFilter: 'blur(10px)',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: activeProduct.accent,
+                    boxShadow: `0 0 10px ${activeProduct.accent}`,
+                  }}
+                />
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: '10px',
+                      display: 'block',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    Selected
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} sx={{ color: 'white', fontSize: '13px' }}>
+                    {activeProduct.name}
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  startIcon={<SwapHoriz />}
+                  onClick={handleChangeProduct}
+                  sx={{
+                    ml: 1,
+                    color: 'white',
+                    textTransform: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    '&:hover': {
+                      background: 'rgba(255,255,255,0.1)',
+                    },
+                  }}
+                >
+                  Change
+                </Button>
+              </Paper>
+            )}
+
+            <Paper
+              elevation={0}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 1,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 3,
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                }}
+              >
+                {user.name?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+              <Box>
+                <Typography variant="body2" fontWeight={600} sx={{ color: 'white', fontSize: '13px' }}>
+                  {user.name}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'rgba(255,255,255,0.6)',
+                    fontSize: '11px',
+                    display: 'block',
+                  }}
+                >
+                  {user.email}
+                </Typography>
+              </Box>
+              <IconButton
+                size="small"
+                onClick={handleSignOut}
+                sx={{
+                  ml: 1,
+                  color: 'rgba(255,255,255,0.7)',
+                  '&:hover': {
+                    color: 'white',
+                    background: 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <Logout fontSize="small" />
+              </IconButton>
+            </Paper>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
       <div className="app-body">
-        <div className="sidebar">
-          <h2 className="sidebar-title">Choose fabric</h2>
+        <Drawer
+          anchor="left"
+          open={true}
+          variant="permanent"
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: 320,
+              background: 'linear-gradient(135deg, #0f1419 0%, #1a2332 100%)',
+              color: 'white',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+              marginTop: '64px',
+              height: 'calc(100% - 64px)',
+              overflowY: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'rgba(255,255,255,0.05)',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '4px',
+                '&:hover': {
+                  background: 'rgba(255,255,255,0.3)',
+                },
+              },
+            },
+          }}
+        >
+          <Box sx={{ p: 3 }}>
+            {/* Header */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                {/* <CheckroomOutlined sx={{ color: '#667eea', fontSize: 28 }} /> */}
+                
+              </Box>
+              
+            </Box>
 
-          <div className="category">
-            <h3 className="category-title">Fabric types</h3>
-            <div className="fabric-list">
-              {fabrics.map((fabric) => (
-                <button
-                  key={fabric.id}
-                  className={`fabric-button ${selectedFabric === fabric.id ? 'active' : ''}`}
-                  onClick={() => handleFabricSelect(fabric.id)}
-                >
-                  <span>{fabric.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+            <Stack spacing={4}>
+              {/* Fabric Types */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Style sx={{ color: '#667eea', fontSize: 20 }} />
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{
+                      fontSize: '14px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.2px',
+                      color: 'rgba(255,255,255,0.9)',
+                    }}
+                  >
+                    Fabric Types
+                  </Typography>
+                </Box>
+                <Stack spacing={1.5}>
+                  {fabrics.map((fabric) => (
+                    <Button
+                      key={fabric.id}
+                      variant={selectedFabric === fabric.id ? 'contained' : 'outlined'}
+                      fullWidth
+                      onClick={() => handleFabricSelect(fabric.id)}
+                      sx={{
+                        py: 1.5,
+                        px: 2.5,
+                        textTransform: 'none',
+                        fontSize: '15px',
+                        fontWeight: selectedFabric === fabric.id ? 600 : 500,
+                        borderRadius: 2,
+                        justifyContent: 'flex-start',
+                        background: selectedFabric === fabric.id
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'transparent',
+                        borderColor: selectedFabric === fabric.id
+                          ? 'transparent'
+                          : 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        boxShadow: selectedFabric === fabric.id
+                          ? '0 4px 12px rgba(102, 126, 234, 0.4)'
+                          : 'none',
+                        '&:hover': {
+                          background: selectedFabric === fabric.id
+                            ? 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)'
+                            : 'rgba(255,255,255,0.08)',
+                          borderColor: selectedFabric === fabric.id
+                            ? 'transparent'
+                            : 'rgba(255,255,255,0.3)',
+                        },
+                      }}
+                    >
+                      {fabric.name}
+                    </Button>
+                  ))}
+                </Stack>
+              </Box>
 
-          <div className="category">
-            <h3 className="category-title">Top styles</h3>
-            <div className="item-grid">
-              {topStyles.map((style) => (
-                <button
-                  key={style.id}
-                  className={`item-button ${selectedTopStyle === style.id ? 'active' : ''}`}
-                  onClick={() => handleTopStyleSelect(style.id)}
-                >
-                  <div className="item-preview">
-                    <Preview modelPath={style.path} />
-                  </div>
-                  <span className="item-name">{style.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+              <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
 
-          <div className="category">
-            <h3 className="category-title">Bottom styles</h3>
-            <div className="item-grid">
-              {bottomStyles.map((style) => (
-                <button
-                  key={style.id}
-                  className={`item-button ${selectedBottomStyle === style.id ? 'active' : ''}`}
-                  onClick={() => handleBottomStyleSelect(style.id)}
+              {/* Top Styles */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Checkroom sx={{ color: '#667eea', fontSize: 20 }} />
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{
+                      fontSize: '14px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.2px',
+                      color: 'rgba(255,255,255,0.9)',
+                    }}
+                  >
+                    Top Styles
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 2,
+                    overflowX: 'auto',
+                    pb: 1,
+                    '&::-webkit-scrollbar': {
+                      display: 'none',
+                    },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
+                  }}
                 >
-                  <div className="item-preview">
-                    <Preview modelPath={style.path} />
-                  </div>
-                  <span className="item-name">{style.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+                  {topStyles.map((style) => (
+                    <Paper
+                      key={style.id}
+                      elevation={selectedTopStyle === style.id ? 8 : 0}
+                      onClick={() => handleTopStyleSelect(style.id)}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        minWidth: 130,
+                        flexShrink: 0,
+                        background: selectedTopStyle === style.id
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'rgba(255,255,255,0.05)',
+                        border: selectedTopStyle === style.id
+                          ? '2px solid #667eea'
+                          : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: selectedTopStyle === style.id
+                            ? '0 8px 20px rgba(102, 126, 234, 0.5)'
+                            : '0 4px 12px rgba(0,0,0,0.3)',
+                          background: selectedTopStyle === style.id
+                            ? 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)'
+                            : 'rgba(255,255,255,0.08)',
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: 120,
+                          bgcolor: selectedTopStyle === style.id
+                            ? 'rgba(255,255,255,0.15)'
+                            : 'rgba(0,0,0,0.2)',
+                          borderRadius: 1.5,
+                          mb: 1,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Preview modelPath={style.path} />
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        align="center"
+                        fontWeight={selectedTopStyle === style.id ? 600 : 500}
+                        sx={{ color: 'white', fontSize: '13px' }}
+                      >
+                        {style.name}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
+              </Box>
+
+              <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+
+              {/* Bottom Styles */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Checkroom sx={{ color: '#667eea', fontSize: 20 }} />
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{
+                      fontSize: '14px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.2px',
+                      color: 'rgba(255,255,255,0.9)',
+                    }}
+                  >
+                    Bottom Styles
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 2,
+                    overflowX: 'auto',
+                    pb: 1,
+                    '&::-webkit-scrollbar': {
+                      display: 'none',
+                    },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
+                  }}
+                >
+                  {bottomStyles.map((style) => (
+                    <Paper
+                      key={style.id}
+                      elevation={selectedBottomStyle === style.id ? 8 : 0}
+                      onClick={() => handleBottomStyleSelect(style.id)}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        minWidth: 130,
+                        flexShrink: 0,
+                        background: selectedBottomStyle === style.id
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'rgba(255,255,255,0.05)',
+                        border: selectedBottomStyle === style.id
+                          ? '2px solid #667eea'
+                          : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: selectedBottomStyle === style.id
+                            ? '0 8px 20px rgba(102, 126, 234, 0.5)'
+                            : '0 4px 12px rgba(0,0,0,0.3)',
+                          background: selectedBottomStyle === style.id
+                            ? 'linear-gradient(135deg, #5568d3 0%, #63408a 100%)'
+                            : 'rgba(255,255,255,0.08)',
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          height: 120,
+                          bgcolor: selectedBottomStyle === style.id
+                            ? 'rgba(255,255,255,0.15)'
+                            : 'rgba(0,0,0,0.2)',
+                          borderRadius: 1.5,
+                          mb: 1,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Preview modelPath={style.path} />
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        align="center"
+                        fontWeight={selectedBottomStyle === style.id ? 600 : 500}
+                        sx={{ color: 'white', fontSize: '13px' }}
+                      >
+                        {style.name}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
+              </Box>
+            </Stack>
+          </Box>
+        </Drawer>
 
         <div className="scene-panel">
           <Scene fabricModels={fabricModels} />
