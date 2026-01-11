@@ -3,15 +3,18 @@ import os
 import secrets
 import base64
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
+import httpx
 from openai import OpenAI
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
+
 
 app = FastAPI(title="Pattupavadai Auth API", version="0.1.0")
 
@@ -30,10 +33,11 @@ app.add_middleware(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://vishnumanikandant23cse_db_user:Jzi0LQxVFRN5O9Df@cluster0.l1aeyju.mongodb.net/")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
+orders_col = db["orders"]
 
 
 class SignupRequest(BaseModel):
@@ -57,8 +61,36 @@ class UserResponse(BaseModel):
     token: str
 
 
+from pydantic import BaseModel, EmailStr
+
+# From Rojitha branch
 class AnalyzeRequest(BaseModel):
     image: str
+
+# From main branch
+class OrderItem(BaseModel):
+    product_id: str
+    product_name: str
+    fabric_type: str | None = None
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    # Deprecated/Optional fields
+    fabric_id: str | None = None
+    fabric_name: str | None = None
+
+class OrderRequest(BaseModel):
+    user_email: EmailStr
+    items: list[OrderItem]
+    total_amount: float
+    order_date: str
+
 
 
 def hash_password(password: str) -> str:
@@ -146,6 +178,61 @@ async def login(payload: LoginRequest):
     return {"user": serialize_user(record)}
 
 
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, EmailStr
+from openai import OpenAI
+import os
+import httpx
+import asyncio
+
+app = FastAPI(title="Pattupavadai Auth API", version="0.1.0")
+
+# Example CORS setup
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------
+# Pydantic Models
+# ---------------------------
+class AnalyzeRequest(BaseModel):
+    image: str
+
+class OrderItem(BaseModel):
+    product_id: str
+    product_name: str
+    fabric_type: str | None = None
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    # Deprecated/Optional fields
+    fabric_id: str | None = None
+    fabric_name: str | None = None
+
+class OrderRequest(BaseModel):
+    user_email: EmailStr
+    items: list[OrderItem]
+    total_amount: float
+    order_date: str
+
+# ---------------------------
+# Analyze Dress Endpoint
+# ---------------------------
 @app.post("/analyze-dress")
 async def analyze_dress(payload: AnalyzeRequest):
     print("Received analyze-dress request")
@@ -164,15 +251,7 @@ async def analyze_dress(payload: AnalyzeRequest):
     client = OpenAI(api_key=api_key)
 
     try:
-        # Robustly handle image data
-        if image_data.startswith("data:"):
-             # It already has the prefix
-             full_image_url = image_data
-        else:
-             # Basic base64 payload, assume jpeg
-             full_image_url = f"data:image/jpeg;base64,{image_data}"
-
-        print(f"Sending request to OpenAI... Payload size: {len(full_image_url)}")
+        full_image_url = image_data if image_data.startswith("data:") else f"data:image/jpeg;base64,{image_data}"
 
         prompt = """
 Analyze the given clothing image (Pattupavadai/South Indian traditional wear) and extract the following attributes:
@@ -195,32 +274,93 @@ Return the result strictly in this JSON format:
   "fabric_type": ""
 }
 """
-
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a computer vision fashion attribute extractor. Return only JSON."
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": full_image_url
-                            },
-                        },
-                    ],
-                }
+                {"role": "system", "content": "You are a computer vision fashion attribute extractor. Return only JSON."},
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": full_image_url}}
+                ]},
             ],
             temperature=0,
             response_format={"type": "json_object"}
         )
-        print("Successfully received response from OpenAI")
         return {"analysis": response.choices[0].message.content}
     except Exception as e:
-        print(f"CRITICAL Error in analyze_dress: {str(e)}")
+        print(f"Error in analyze_dress: {e}")
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+
+# ---------------------------
+# Orders Endpoints
+# ---------------------------
+@app.post("/orders", status_code=201)
+async def create_order(payload: OrderRequest, background_tasks: BackgroundTasks):
+    # Example placeholder: replace with actual user check
+    user = await get_user(payload.user_email)  # Implement get_user()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    order_doc = payload.dict()
+    order_doc["items"] = [item.dict() for item in payload.items]
+    result = await orders_col.insert_one(order_doc)  # Implement orders_col (MongoDB collection)
+    order_id = str(result.inserted_id)
+
+    for index, item in enumerate(payload.items):
+        background_tasks.add_task(generate_and_save_image, order_id, index, item)
+
+    return {"message": "Order created successfully", "orderId": order_id}
+
+async def generate_and_save_image(order_id: str, index: int, item: OrderItem):
+    try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            print("OPENAI_API_KEY not set, skipping image generation")
+            return
+
+        client = OpenAI(api_key=api_key)
+        
+        prompt = f"""
+        A high-quality, photorealistic fashion design illustration of a {item.product_name}.
+        Details:
+        - Fabric: {item.fabric_type or 'Silk'} ({item.fabric_name or ''})
+        - Dress Type: {item.dress_type or 'Standard'}
+        - Top Style: {item.top_style}
+        - Bottom Style: {item.bottom_style}
+        - Colors: Top is {item.top_color}, Bottom is {item.bottom_color} with accent {item.accent}
+        - Sleeve: {item.sleeve_type}
+        - Neck: {item.neck_design}
+        - Border: {item.border_design}
+        """
+
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+
+        image_url = response.data[0].url
+        
+        if image_url:
+            async with httpx.AsyncClient() as http_client:
+                r = await http_client.get(image_url)
+                if r.status_code == 200:
+                    save_path = f"../frontend/public/images/{order_id}_{index}.png"
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    with open(save_path, "wb") as f:
+                        f.write(r.content)
+                    print(f"Saved image for order {order_id} item {index}")
+                else:
+                    print(f"Failed to download image for {order_id} item {index}")
+    except Exception as e:
+        print(f"Error generating image for {order_id} item {index}: {e}")
+
+@app.get("/orders/{user_email}")
+async def get_user_orders(user_email: EmailStr):
+    cursor = orders_col.find({"user_email": user_email}).sort("order_date", -1)
+    orders = await cursor.to_list(length=100)
+    for order in orders:
+        order["_id"] = str(order["_id"])
+    return orders
