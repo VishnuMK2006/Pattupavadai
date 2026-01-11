@@ -54,32 +54,10 @@ function SectionModel({ modelPath, section, color }) {
   );
 }
 
-export default function Scene({ fabricModels }) {
-  const [topColor, setTopColor] = useState("#ff6600");
-  const [bottomColor, setBottomColor] = useState("#2ecc71");
+export default function Scene({ fabricModels, topColor, bottomColor }) {
 
   return (
     <>
-      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
-        <label>
-          Top & Sleeves Color:{" "}
-          <input
-            type="color"
-            value={topColor}
-            onChange={(e) => setTopColor(e.target.value)}
-          />
-        </label>
-
-        <label>
-          Bottom Color:{" "}
-          <input
-            type="color"
-            value={bottomColor}
-            onChange={(e) => setBottomColor(e.target.value)}
-          />
-        </label>
-      </div>
-
       <Canvas camera={{ position: [0, 2, 5] }}>
         <ambientLight intensity={0.8} />
         <directionalLight position={[5, 10, 5]} intensity={1} />

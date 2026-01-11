@@ -5,6 +5,8 @@ import AuthForm from "./components/AuthForm";
 import ProductSelect from "./components/ProductSelect";
 import Preview from "./components/Preview";
 import Sidebar from "./components/Sidebar";
+import PaymentModal from "./components/PaymentModal";
+import CartDrawer from "./components/CartDrawer";
 import {
   Box,
   Typography,
@@ -27,6 +29,16 @@ function App() {
   const [selectedFabric, setSelectedFabric] = useState(null);
   const [selectedTopStyle, setSelectedTopStyle] = useState("t1");
   const [selectedBottomStyle, setSelectedBottomStyle] = useState("p1");
+  const [selectedDressType, setSelectedDressType] = useState("pattu-pavadai");
+  const [selectedFabricType, setSelectedFabricType] = useState("Banarasi Silk");
+  const [selectedSleeveType, setSelectedSleeveType] = useState("short");
+  const [selectedNeckDesign, setSelectedNeckDesign] = useState("round");
+  const [selectedBorderDesign, setSelectedBorderDesign] = useState("gold-zari");
+  const [topColor, setTopColor] = useState("#ff6600");
+  const [bottomColor, setBottomColor] = useState("#2ecc71");
+  const [cart, setCart] = useState([]);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Restore login session on load
   useEffect(() => {
@@ -42,6 +54,103 @@ function App() {
       console.warn("Failed to restore session", err);
     }
   }, []);
+
+  const validateSelection = () => {
+    if (!selectedFabricType) return "Please select a Fabric Type.";
+    if (!selectedDressType) return "Please select a Dress Type.";
+    if (!selectedSleeveType) return "Please select a Sleeve Type.";
+    if (!selectedNeckDesign) return "Please select a Neck Design.";
+    if (!selectedBorderDesign) return "Please select a Border Design.";
+    return null;
+  };
+
+  const addToCart = () => {
+    if (!activeProduct) return;
+
+    const error = validateSelection();
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    const newItem = {
+      product_id: activeProduct.id,
+      product_name: activeProduct.name,
+      fabric_type: selectedFabricType, // Use the new fabric type state
+      top_style: selectedTopStyle,
+      bottom_style: selectedBottomStyle,
+      dress_type: selectedDressType,
+      sleeve_type: selectedSleeveType,
+      neck_design: selectedNeckDesign,
+      border_design: selectedBorderDesign,
+      top_color: topColor,
+      bottom_color: bottomColor,
+      accent: activeProduct.accent,
+    };
+
+    setCart([...cart, newItem]);
+    // Optionally open the summary or show a snackbar here instead of alert
+    // alert("Item added to cart!");
+  };
+
+  const handleBuyNow = () => {
+    if (!activeProduct) return;
+
+    const error = validateSelection();
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    const newItem = {
+      product_id: activeProduct.id,
+      product_name: activeProduct.name,
+      fabric_type: selectedFabricType, // Use the new fabric type state
+      top_style: selectedTopStyle,
+      bottom_style: selectedBottomStyle,
+      dress_type: selectedDressType,
+      sleeve_type: selectedSleeveType,
+      neck_design: selectedNeckDesign,
+      border_design: selectedBorderDesign,
+      top_color: topColor,
+      bottom_color: bottomColor,
+      accent: activeProduct.accent
+    };
+
+    setCart([...cart, newItem]);
+    setIsCartOpen(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    if (!user) return;
+
+    const orderPayload = {
+      user_email: user.email,
+      items: cart,
+      total_amount: cart.length * 1500, // Dummy fixed price
+      order_date: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderPayload),
+      });
+
+      if (response.ok) {
+        setCart([]); // Clear cart
+        setIsPaymentOpen(false);
+      } else {
+        alert("Failed to save order");
+      }
+    } catch (error) {
+      console.error("Error saving order:", error);
+      alert("Error saving order");
+    }
+  };
 
   const products = [
     { id: "pattu-paavadai", name: "Pattu Paavadai", blurb: "Handwoven silk skirt set crafted for festive shine.", accent: "#fbbf24" },
@@ -300,12 +409,83 @@ function App() {
           bottomStyles={bottomStyles}
           selectedBottomStyle={selectedBottomStyle}
           onBottomStyleSelect={handleBottomStyleSelect}
+          selectedDressType={selectedDressType}
+          onDressTypeSelect={setSelectedDressType}
+          selectedFabricType={selectedFabricType}
+          onFabricTypeSelect={setSelectedFabricType}
+          selectedSleeveType={selectedSleeveType}
+          onSleeveTypeSelect={setSelectedSleeveType}
+          selectedNeckDesign={selectedNeckDesign}
+          onNeckDesignSelect={setSelectedNeckDesign}
+          selectedBorderDesign={selectedBorderDesign}
+          onBorderDesignSelect={setSelectedBorderDesign}
+          topColor={topColor}
+          onTopColorChange={setTopColor}
+          bottomColor={bottomColor}
+          onBottomColorChange={setBottomColor}
+          onAddToCart={addToCart}
+          onBuyNow={handleBuyNow}
         />
 
         <div className="scene-panel">
-          <Scene fabricModels={fabricModels} />
+          <Scene 
+            fabricModels={fabricModels}
+            topColor={topColor}
+            bottomColor={bottomColor}
+          />
+          {cart.length > 0 && (
+            <Paper
+              elevation={4}
+              sx={{
+                position: 'absolute',
+                bottom: 24,
+                right: 24,
+                p: 2,
+                borderRadius: 3,
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700}>Cart ({cart.length})</Typography>
+                <Typography variant="caption">Total: ₹{cart.length * 1500}</Typography>
+              </Box>
+              <Button 
+                variant="contained" 
+                onClick={() => setIsCartOpen(true)}
+                sx={{ background: '#2ecc71' }}
+              >
+                Checkout
+              </Button>
+            </Paper>
+          )}
         </div>
       </div>
+
+      <CartDrawer
+        open={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cart}
+        onRemoveItem={(index) => {
+          const newCart = [...cart];
+          newCart.splice(index, 1);
+          setCart(newCart);
+        }}
+        onCheckout={() => {
+          setIsCartOpen(false);
+          setIsPaymentOpen(true);
+        }}
+      />
+
+      <PaymentModal
+        open={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        totalAmount={cart.length * 1500}
+        onSuccess={handlePaymentSuccess}
+      />
 
     </div>
   );

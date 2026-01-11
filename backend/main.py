@@ -29,6 +29,7 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
+orders_col = db["orders"]
 
 
 class SignupRequest(BaseModel):
@@ -50,6 +51,31 @@ class UserResponse(BaseModel):
     shipping_address: str
     contact_details: str
     token: str
+
+
+class OrderItem(BaseModel):
+    product_id: str
+    product_name: str
+    fabric_type: str | None = None
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    # Deprecated/Optional fields
+    fabric_id: str | None = None
+    fabric_name: str | None = None
+
+
+class OrderRequest(BaseModel):
+    user_email: EmailStr
+    items: list[OrderItem]
+    total_amount: float
+    order_date: str
 
 
 def hash_password(password: str) -> str:
@@ -119,3 +145,18 @@ async def login(payload: LoginRequest):
     await users_col.update_one({"email": payload.email}, {"$set": {"token": token}})
     record["token"] = token
     return {"user": serialize_user(record)}
+
+
+@app.post("/orders", status_code=201)
+async def create_order(payload: OrderRequest):
+    # Verify user exists
+    user = await get_user(payload.user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    order_doc = payload.dict()
+    # Ensure items are stored as list of dicts for mongo
+    order_doc["items"] = [item.dict() for item in payload.items]
+    
+    result = await orders_col.insert_one(order_doc)
+    return {"message": "Order created successfully", "orderId": str(result.inserted_id)}
