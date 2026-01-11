@@ -4,7 +4,7 @@ import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
 function YBot() {
-  const { scene } = useGLTF("/models/ybot.glb");
+  const { scene } = useGLTF("/models/model.glb");
   return <primitive object={scene} />;
 }
 
@@ -36,15 +36,13 @@ function SectionModel({ modelPath, section, color }) {
 
   const sideOffset = section === "bottom" ? -1.5 : 1.5;
 
-  useFrame((_state, delta) => 
-    {
-      if (ref.current) {
-        const targetPos = new THREE.Vector3(...coords[section]);
-        ref.current.position.lerp(targetPos, delta * 5);
-        ref.current.scale.lerp(new THREE.Vector3(...scales[section]), delta * 5);
-      }
+  useFrame((_state, delta) => {
+    if (ref.current) {
+      const targetPos = new THREE.Vector3(...coords[section]);
+      ref.current.position.lerp(targetPos, delta * 5);
+      ref.current.scale.lerp(new THREE.Vector3(...scales[section]), delta * 5);
     }
-  );
+  });
 
   return (
     <primitive
