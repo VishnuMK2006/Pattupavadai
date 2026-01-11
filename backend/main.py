@@ -2,11 +2,14 @@ from typing import Dict
 import os
 import secrets
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
+import httpx
+from openai import OpenAI
+import asyncio
 
 app = FastAPI(title="Pattupavadai Auth API", version="0.1.0")
 
@@ -25,10 +28,11 @@ app.add_middleware(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://vishnumanikandant23cse_db_user:Jzi0LQxVFRN5O9Df@cluster0.l1aeyju.mongodb.net/")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
+orders_col = db["orders"]
 
 
 class SignupRequest(BaseModel):
@@ -50,6 +54,31 @@ class UserResponse(BaseModel):
     shipping_address: str
     contact_details: str
     token: str
+
+
+class OrderItem(BaseModel):
+    product_id: str
+    product_name: str
+    fabric_type: str | None = None
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    # Deprecated/Optional fields
+    fabric_id: str | None = None
+    fabric_name: str | None = None
+
+
+class OrderRequest(BaseModel):
+    user_email: EmailStr
+    items: list[OrderItem]
+    total_amount: float
+    order_date: str
 
 
 def hash_password(password: str) -> str:
@@ -119,3 +148,89 @@ async def login(payload: LoginRequest):
     await users_col.update_one({"email": payload.email}, {"$set": {"token": token}})
     record["token"] = token
     return {"user": serialize_user(record)}
+
+
+@app.post("/orders", status_code=201)
+async def create_order(payload: OrderRequest, background_tasks: BackgroundTasks):
+    # Verify user exists
+    user = await get_user(payload.user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    order_doc = payload.dict()
+    # Ensure items are stored as list of dicts for mongo
+    order_doc["items"] = [item.dict() for item in payload.items]
+    
+    result = await orders_col.insert_one(order_doc)
+    order_id = str(result.inserted_id)
+
+    # Schedule image generation for each item
+    for index, item in enumerate(payload.items):
+         background_tasks.add_task(generate_and_save_image, order_id, index, item)
+
+    return {"message": "Order created successfully", "orderId": order_id}
+
+async def generate_and_save_image(order_id: str, index: int, item: OrderItem):
+    try:
+        api_key = os.environ.get("api_key")
+        if not api_key:
+            print("OPENAI_API_KEY not set, skipping image generation")
+            return
+
+        client = OpenAI(api_key=api_key)
+        
+        prompt = f"""
+        A high-quality, photorealistic fashion design illustration of a {item.product_name}.
+        Details:
+        - Fabric: {item.fabric_type or 'Silk'} ({item.fabric_name or ''})
+        - Dress Type: {item.dress_type or 'Standard'}
+        - Top Style: {item.top_style}
+        - Bottom Style: {item.bottom_style}
+        - Colors: Top is {item.top_color}, Bottom is {item.bottom_color} with accent {item.accent}
+        - Sleeve: {item.sleeve_type}
+        - Neck: {item.neck_design}
+        - Border: {item.border_design}
+        
+        The image should be clean, focused on the outfit, with a neutral background.
+        """
+
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+
+        image_url = response.data[0].url
+        
+        if image_url:
+            # Download and save the image
+            async with httpx.AsyncClient() as http_client:
+                r = await http_client.get(image_url)
+                if r.status_code == 200:
+                    # Construct path: frontend/public/images/orderid_index.png
+                    # Taking advantage of relative path structure or ensure D: drive path
+                    save_path = f"../frontend/public/images/{order_id}_{index}.png"
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    with open(save_path, "wb") as f:
+                        f.write(r.content)
+                    print(f"Generated and saved image for {order_id} item {index}")
+                else:
+                     print(f"Failed to download image for {order_id} item {index}")
+
+    except Exception as e:
+        print(f"Error generating image for {order_id} item {index}: {e}")
+
+
+@app.get("/orders/{user_email}")
+async def get_user_orders(user_email: EmailStr):
+    # Retrieve all orders for this user, sorted by date (newest first)
+    cursor = orders_col.find({"user_email": user_email}).sort("order_date", -1)
+    orders = await cursor.to_list(length=100)
+    
+    # Convert ObjectId to string for JSON serialization
+    for order in orders:
+        order["_id"] = str(order["_id"])
+        
+    return orders

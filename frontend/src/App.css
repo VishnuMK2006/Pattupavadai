@@ -122,12 +122,18 @@ body {
 }
 
 .scene-panel {
-  flex: 1;
-  position: relative;
+  width: 50%;
+  margin-left: 50%; /* Force it to start after the 50% sidebar */
+  height: calc(100vh - 64px); /* Subtract Topbar height if needed, assuming topbar is 64px */
+  position: fixed; /* Or absolute relative to app-body */
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.95));
+  z-index: 1;
 }
+
 
 .auth-shell {
   min-height: 100vh;

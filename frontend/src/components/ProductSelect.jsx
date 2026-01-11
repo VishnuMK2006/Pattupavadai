@@ -1,68 +1,142 @@
+import { useState } from 'react';
+import { Box, Button, Typography } from '@mui/material';
+import Carousel from './Carousel';
+
+// Import images as modules (explicit URL strings)
+import pattuImageUrl from '../assets/category/pattupavadai.png?url';
+import ethnicFrockImageUrl from '../assets/category/ethnic-frock.png?url';
+import kurthaImageUrl from '../assets/category/Kurtha.png?url';
+
 const defaultProducts = [
   {
     id: "pattu-paavadai",
     name: "Pattu Paavadai",
-    blurb: "Classic silk set with rich colors and zari borders.",
+    blurb: "Handwoven silk skirt set crafted for festive shine.",
     tag: "Traditional",
+    image: pattuImageUrl
   },
   {
     id: "ethnic-frock",
     name: "Ethnic Frock",
-    blurb: "Lightweight festive frock for playful comfort.",
+    blurb: "Lightweight frock with zari trims for celebrations.",
     tag: "Festive",
+    image: ethnicFrockImageUrl
   },
   {
     id: "kurta-pyjama",
     name: "Kurta Pyjama",
-    blurb: "Simple kurta with comfy pyjama for everyday elegance.",
+    blurb: "Classic kurta with comfy pyjama for all-day wear.",
     tag: "Casual",
-  },
-  {
-    id: "kurta-pant",
-    name: "Kurta Pant",
-    blurb: "Structured kurta paired with tailored pants.",
-    tag: "Modern",
+    image: kurthaImageUrl
   },
 ];
 
 export default function ProductSelect({ onSelect, products = defaultProducts, user, onSignOut }) {
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const carouselItems = products.map(product => ({
+    id: product.id,
+    title: product.name,
+    description: product.blurb,
+    image: product.image,
+    product: product
+  }));
+
+  const handleSelectFromCarousel = (item) => {
+    if (item?.product) {
+      onSelect?.(item.product);
+    }
+  };
+
   return (
-    <div className="product-page">
-      <div className="product-hero">
-        <p className="eyebrow">Pick a collection</p>
-        <h1>Select a product to style</h1>
-        <p className="muted">
-          Choose what you want to preview. You can switch products anytime.
-        </p>
-      </div>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f1419 0%, #1a2332 100%)',
+        padding: 3,
+        position: 'relative',
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography
+          variant="overline"
+          sx={{
+            color: '#999',
+            letterSpacing: '2px',
+            fontSize: '12px',
+            fontWeight: 600,
+          }}
+        >
+          Pick a Collection
+        </Typography>
+        
+      </Box>
 
-      <div className="product-grid">
-        {products.map((product) => (
-          <button
-            key={product.id}
-            className="product-card"
-            type="button"
-            onClick={() => onSelect?.(product)}
-          >
-            <div className="product-head">
-              <span className="product-name">{product.name}</span>
-              <span className="product-tag">{product.tag}</span>
-            </div>
-            <p className="muted">{product.blurb}</p>
-          </button>
-        ))}
-      </div>
+      {/* Carousel */}
+      <Box
+        sx={{
+          height: '600px',
+          width: '100%',
+          maxWidth: '450px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        }}
+      >
+        <Carousel
+          items={carouselItems}
+          baseWidth={400}
+          autoplay
+          pauseOnHover
+          loop
+          onSelectItem={handleSelectFromCarousel}
+        />
+      </Box>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem" }}>
+      {/* Remove the old Select Button */}
+
+      {/* Footer */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 20,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          px: 4,
+        }}
+      >
         {user && (
-          <span className="muted">Logged in as {user.email}</span>
+          <Typography variant="body2" sx={{ color: '#999' }}>
+            Logged in as {user.email}
+          </Typography>
         )}
+        <Box sx={{ flex: 1 }} />
         {onSignOut && (
-          <button className="ghost" type="button" onClick={onSignOut}>
+          <Button
+            variant="text"
+            onClick={onSignOut}
+            sx={{
+              color: '#999',
+              textTransform: 'none',
+              '&:hover': {
+                color: '#fff',
+                bgcolor: 'rgba(255,255,255,0.1)',
+              },
+            }}
+          >
             Sign out
-          </button>
+          </Button>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
