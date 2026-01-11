@@ -7,6 +7,7 @@ import Preview from "./components/Preview";
 import Sidebar from "./components/Sidebar";
 import PaymentModal from "./components/PaymentModal";
 import CartDrawer from "./components/CartDrawer";
+import Dashboard from "./components/Dashboard";
 import {
   Box,
   Typography,
@@ -39,6 +40,7 @@ function App() {
   const [cart, setCart] = useState([]);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [view, setView] = useState("shop"); // 'shop' | 'dashboard'
 
   // Restore login session on load
   useEffect(() => {
@@ -143,6 +145,7 @@ function App() {
       if (response.ok) {
         setCart([]); // Clear cart
         setIsPaymentOpen(false);
+        setView("dashboard");
       } else {
         alert("Failed to save order");
       }
@@ -339,6 +342,20 @@ function App() {
               </Paper>
             )}
 
+            {activeProduct && (
+              <Button 
+                onClick={() => setView(view === 'shop' ? 'dashboard' : 'shop')}
+                sx={{ 
+                  color: 'rgba(255,255,255,0.7)', 
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': { color: 'white' }
+                }}
+              >
+                {view === 'shop' ? 'My Orders' : 'Back to Shop'}
+              </Button>
+            )}
+
             <Paper
               elevation={0}
               sx={{
@@ -398,8 +415,11 @@ function App() {
         </Toolbar>
       </AppBar>
 
-      <div className="app-body">
-        <Sidebar
+      {view === 'dashboard' ? (
+        <Dashboard user={user} onBack={() => setView('shop')} />
+      ) : (
+        <div className="app-body">
+          <Sidebar
           fabrics={fabrics}
           selectedFabric={selectedFabric}
           onFabricSelect={handleFabricSelect}
@@ -464,6 +484,7 @@ function App() {
           )}
         </div>
       </div>
+      )}
 
       <CartDrawer
         open={isCartOpen}

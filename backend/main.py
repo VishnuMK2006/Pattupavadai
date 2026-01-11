@@ -25,7 +25,7 @@ app.add_middleware(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://vishnumanikandant23cse_db_user:Jzi0LQxVFRN5O9Df@cluster0.l1aeyju.mongodb.net/")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
@@ -160,3 +160,16 @@ async def create_order(payload: OrderRequest):
     
     result = await orders_col.insert_one(order_doc)
     return {"message": "Order created successfully", "orderId": str(result.inserted_id)}
+
+
+@app.get("/orders/{user_email}")
+async def get_user_orders(user_email: EmailStr):
+    # Retrieve all orders for this user, sorted by date (newest first)
+    cursor = orders_col.find({"user_email": user_email}).sort("order_date", -1)
+    orders = await cursor.to_list(length=100)
+    
+    # Convert ObjectId to string for JSON serialization
+    for order in orders:
+        order["_id"] = str(order["_id"])
+        
+    return orders
