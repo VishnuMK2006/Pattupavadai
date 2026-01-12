@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import Carousel from './Carousel';
 
-// Import images as modules (explicit URL strings)
-import pattuImageUrl from '../assets/category/pattupavadai.png?url';
-import ethnicFrockImageUrl from '../assets/category/ethnic-frock.png?url';
-import kurthaImageUrl from '../assets/category/Kurtha.png?url';
+// Import the available category thumbnails
+import pattuImageUrl from '../assets/category/i1.png';
+import ethnicFrockImageUrl from '../assets/category/i2.png';
+import kurthaImageUrl from '../assets/category/i3.png';
 
 const defaultProducts = [
   {
@@ -31,6 +31,12 @@ const defaultProducts = [
   },
 ];
 
+const FALLBACK_IMAGES = {
+  'pattu-paavadai': pattuImageUrl,
+  'ethnic-frock': ethnicFrockImageUrl,
+  'kurta-pyjama': kurthaImageUrl
+};
+
 export default function ProductSelect({ onSelect, products = defaultProducts, user, onSignOut }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -38,7 +44,7 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
     id: product.id,
     title: product.name,
     description: product.blurb,
-    image: product.image,
+    image: product.image ?? FALLBACK_IMAGES[product.id] ?? pattuImageUrl,
     product: product
   }));
 
@@ -56,7 +62,7 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0f1419 0%, #1a2332 100%)',
+        // background: 'linear-gradient(135deg, #0f141900 0%, #1a233200 100%)',
         padding: 3,
         position: 'relative',
       }}

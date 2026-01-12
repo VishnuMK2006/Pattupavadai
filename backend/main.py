@@ -233,7 +233,6 @@ async def analyze_dress(payload: AnalyzeRequest):
     #     print("Error: OPENAI_API_KEY not found in environment")
     #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
 
-   
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     try:
@@ -288,7 +287,7 @@ async def generate_preview_image(payload: PreviewRequest) -> Dict[str, str]:
     #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
     #check1
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
+   
     prompt = f"""
     A high-quality, photorealistic fashion design illustration of a {payload.product_name}.
     Details:

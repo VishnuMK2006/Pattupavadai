@@ -1,13 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'motion/react';
-import { FiCircle, FiCode, FiFileText, FiLayers, FiLayout } from 'react-icons/fi';
-
+import img1 from '../assets/category/i1.png';
+import img2 from '../assets/category/i2.png';
+import img3 from '../assets/category/i3.png';
 import './Carousel.css';
 
 const DRAG_BUFFER = 0;
 const VELOCITY_THRESHOLD = 500;
 const GAP = 16;
 const SPRING_OPTIONS = { type: 'spring', stiffness: 300, damping: 30 };
+
+const DEFAULT_ITEMS = [
+  {
+    id: 'design',
+    title: 'Design',
+    description: 'UI Design inspiration with woven motifs.',
+    image: img1
+  },
+  {
+    id: 'code',
+    title: 'Code',
+    description: 'Clean implementation details highlighted.',
+    image: img2
+  },
+  {
+    id: 'dress',
+    title: 'Dress',
+    description: 'Classic paavadai silhouette preview.',
+    image: img3
+  }
+];
 
 function CarouselItem({ item, index, itemWidth, round, trackItemOffset, x, transition, onSelectItem }) {
   const range = [-(index + 1) * trackItemOffset, -index * trackItemOffset, -(index - 1) * trackItemOffset];
@@ -68,14 +90,15 @@ export default function Carousel({
   round = false,
   onSelectItem
 }) {
+  const resolvedItems = items.length ? items : DEFAULT_ITEMS;
   const containerPadding = 16;
   const itemWidth = baseWidth - containerPadding * 2;
   const trackItemOffset = itemWidth + GAP;
   const itemsForRender = useMemo(() => {
-    if (!loop) return items;
-    if (items.length === 0) return [];
-    return [items[items.length - 1], ...items, items[0]];
-  }, [items, loop]);
+    if (!loop) return resolvedItems;
+    if (resolvedItems.length === 0) return [];
+    return [resolvedItems[resolvedItems.length - 1], ...resolvedItems, resolvedItems[0]];
+  }, [resolvedItems, loop]);
 
   const [position, setPosition] = useState(loop ? 1 : 0);
   const x = useMotionValue(0);
@@ -113,7 +136,7 @@ export default function Carousel({
     const startingPosition = loop ? 1 : 0;
     setPosition(startingPosition);
     x.set(-startingPosition * trackItemOffset);
-  }, [items.length, loop, trackItemOffset, x]);
+  }, [resolvedItems.length, loop, trackItemOffset, x]);
 
   useEffect(() => {
     if (!loop && position > itemsForRender.length - 1) {
@@ -148,7 +171,7 @@ export default function Carousel({
 
     if (position === 0) {
       setIsJumping(true);
-      const target = items.length;
+      const target = resolvedItems.length;
       setPosition(target);
       x.set(-target * trackItemOffset);
       requestAnimationFrame(() => {
@@ -189,7 +212,11 @@ export default function Carousel({
       };
 
   const activeIndex =
-    items.length === 0 ? 0 : loop ? (position - 1 + items.length) % items.length : Math.min(position, items.length - 1);
+    resolvedItems.length === 0
+      ? 0
+      : loop
+        ? (position - 1 + resolvedItems.length) % resolvedItems.length
+        : Math.min(position, resolvedItems.length - 1);
 
   return (
     <div
@@ -233,7 +260,7 @@ export default function Carousel({
       </motion.div>
       <div className={`carousel-indicators-container ${round ? 'round' : ''}`}>
         <div className="carousel-indicators">
-          {items.map((_, index) => (
+          {resolvedItems.map((_, index) => (
             <motion.div
               key={index}
               className={`carousel-indicator ${activeIndex === index ? 'active' : 'inactive'}`}

@@ -26,7 +26,7 @@
   justify-content: flex-start;
   border: 1px solid #555;
   border-radius: calc(var(--outer-r) - var(--p-distance));
-  background-color: rgba(13, 7, 22, 0.85);
+  background-color: rgba(102, 0, 255, 0);
   overflow: hidden;
   cursor: grab;
   height: 100%;
@@ -56,32 +56,39 @@
 }
 
 .carousel-item-header {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 20px;
-  padding-bottom: 0;
+  height: 100%;
+  padding: 0;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  z-index: 0;
 }
 
 .carousel-item-header.round {
+  position: static;
   padding: 0;
   margin: 0;
   margin-bottom: 12px;
   width: auto;
+  height: auto;
 }
 
 .carousel-image {
   width: 100%;
-  height: 200px;
-  object-fit: contain;
-  border-radius: 8px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
   display: block;
-  position: relative;
-  z-index: 1;
-  background-color: rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
 }
 
 .carousel-icon-container {
@@ -108,6 +115,9 @@
   flex-direction: column;
   justify-content: space-between;
   width: 100%;
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
 }
 
 .carousel-item.round .carousel-item-content {
@@ -120,12 +130,12 @@
   margin-bottom: 8px;
   font-weight: 900;
   font-size: 18px;
-  color: #fff;
+  color: #000000;
 }
 
 .carousel-item-description {
   font-size: 14px;
-  color: #fff;
+  color: #000000;
   margin-bottom: 16px;
   flex: 1;
   line-height: 1.5;
