@@ -7,6 +7,7 @@ import shutil
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
@@ -50,6 +51,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve order images
+app.mount("/images", StaticFiles(directory="../frontend/public/images"), name="images")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -224,12 +228,13 @@ async def analyze_dress(payload: AnalyzeRequest):
     if "," in image_data:
         image_data = image_data.split(",")[1]
 
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        print("Error: OPENAI_API_KEY not found in environment")
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    # api_key = os.environ.get("OPENAI_API_KEY")
+    # if not api_key:
+    #     print("Error: OPENAI_API_KEY not found in environment")
+    #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
 
-    client = OpenAI(api_key=api_key)
+   
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     try:
         full_image_url = image_data if image_data.startswith("data:") else f"data:image/jpeg;base64,{image_data}"
@@ -371,6 +376,16 @@ async def create_order(payload: OrderRequest):
 async def get_user_orders(user_email: EmailStr):
     cursor = orders_col.find({"user_email": user_email}).sort("order_date", -1)
     orders = await cursor.to_list(length=100)
+    for order in orders:
+        order["_id"] = str(order["_id"])
+    return orders
+
+
+@app.get("/admin/orders")
+async def get_all_orders():
+    # Fetch all orders regardless of user
+    cursor = orders_col.find({}).sort("order_date", -1)
+    orders = await cursor.to_list(length=1000)
     for order in orders:
         order["_id"] = str(order["_id"])
     return orders
