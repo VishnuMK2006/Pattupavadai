@@ -85,7 +85,7 @@ function Row({ order }) {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Box 
                             component="img"
-                            src={`/images/${order._id}_${index}.png`}
+                            src={`/images/orders/${order._id}_${index}.png`}
                             onError={(e) => {
                               e.target.onerror = null; 
                               e.target.src = "https://placehold.co/100x100?text=Generating...";

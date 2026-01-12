@@ -24,7 +24,10 @@ import {
 import {
   Logout,
   SwapHoriz,
+  Close,
+  CheckCircle,
 } from '@mui/icons-material';
+import { Modal, Stack, CircularProgress } from '@mui/material';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -43,6 +46,13 @@ function App() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [view, setView] = useState("shop"); // 'shop' | 'dashboard'
+  
+  // New state for Add-to-Cart Preview
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [pendingImageName, setPendingImageName] = useState(null);
+  const [genError, setGenError] = useState(null);
 
   // Restore login session on load
   useEffect(() => {
@@ -68,7 +78,7 @@ function App() {
     return null;
   };
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (!activeProduct) return;
 
     const error = validateSelection();
@@ -77,10 +87,15 @@ function App() {
       return;
     }
 
-    const newItem = {
-      product_id: activeProduct.id,
+    // Start generation flow
+    setIsPreviewOpen(true);
+    setIsGenerating(true);
+    setGenError(null);
+    setPreviewImage(null);
+
+    const payload = {
       product_name: activeProduct.name,
-      fabric_type: selectedFabricType, // Use the new fabric type state
+      fabric_type: selectedFabricType,
       top_style: selectedTopStyle,
       bottom_style: selectedBottomStyle,
       dress_type: selectedDressType,
@@ -90,11 +105,52 @@ function App() {
       top_color: topColor,
       bottom_color: bottomColor,
       accent: activeProduct.accent,
+      user_email: user.email
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/preview-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to generate");
+      
+      setPreviewImage(`data:image/png;base64,${data.image_base64}`);
+      setPendingImageName(data.image_name);
+    } catch (err) {
+      console.error(err);
+      setGenError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleConfirmAddToCart = () => {
+    if (!pendingImageName) return;
+
+    const newItem = {
+      product_id: activeProduct.id,
+      product_name: activeProduct.name,
+      fabric_type: selectedFabricType,
+      top_style: selectedTopStyle,
+      bottom_style: selectedBottomStyle,
+      dress_type: selectedDressType,
+      sleeve_type: selectedSleeveType,
+      neck_design: selectedNeckDesign,
+      border_design: selectedBorderDesign,
+      top_color: topColor,
+      bottom_color: bottomColor,
+      accent: activeProduct.accent,
+      image_name: pendingImageName,
+      preview_url: previewImage
     };
 
     setCart([...cart, newItem]);
-    // Optionally open the summary or show a snackbar here instead of alert
-    // alert("Item added to cart!");
+    setIsPreviewOpen(false);
+    setPreviewImage(null);
+    setPendingImageName(null);
   };
 
   const handleBuyNow = () => {
@@ -128,9 +184,11 @@ function App() {
   const handlePaymentSuccess = async () => {
     if (!user) return;
 
+    const sanitizedItems = cart.map(({ preview_url, ...rest }) => rest);
+
     const orderPayload = {
       user_email: user.email,
-      items: cart,
+      items: sanitizedItems,
       total_amount: cart.length * 1500, // Dummy fixed price
       order_date: new Date().toISOString()
     };
@@ -514,6 +572,87 @@ function App() {
         totalAmount={cart.length * 1500}
         onSuccess={handlePaymentSuccess}
       />
+
+      <Modal
+        open={isPreviewOpen}
+        onClose={() => !isGenerating && setIsPreviewOpen(false)}
+        sx={{ display: 'grid', placeItems: 'center', p: 2 }}
+      >
+        <Paper sx={{ 
+          width: 'min(500px, 95vw)', 
+          p: 3, 
+          borderRadius: 4, 
+          background: '#1e293b', 
+          color: 'white',
+          position: 'relative',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <IconButton 
+            onClick={() => setIsPreviewOpen(false)}
+            disabled={isGenerating}
+            sx={{ position: 'absolute', top: 8, right: 8, color: 'rgba(255,255,255,0.5)' }}
+          >
+            <Close />
+          </IconButton>
+
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            {isGenerating ? 'Generating Your Design...' : 'Preview Your Design'}
+          </Typography>
+          
+          <Box sx={{ 
+            width: '100%', 
+            aspectRatio: '1/1', 
+            background: 'rgba(0,0,0,0.2)', 
+            borderRadius: 3,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            mb: 3,
+            border: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            {isGenerating ? (
+              <Stack alignItems="center" spacing={2}>
+                <CircularProgress size={60} thickness={4} sx={{ color: '#667eea' }} />
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                  DALL-E 3 is crafting your custom dress...
+                </Typography>
+              </Stack>
+            ) : previewImage ? (
+              <img src={previewImage} alt="Design Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : genError ? (
+              <Typography color="error">{genError}</Typography>
+            ) : null}
+          </Box>
+
+          {!isGenerating && previewImage && (
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<CheckCircle />}
+              onClick={handleConfirmAddToCart}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+                fontWeight: 700,
+                fontSize: '1rem',
+                textTransform: 'none',
+                boxShadow: '0 4px 15px rgba(46, 204, 113, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #27ae60 0%, #219150 100%)',
+                }
+              }}
+            >
+              Confirm & Add to Cart
+            </Button>
+          )}
+
+          {genError && (
+             <Button fullWidth onClick={addToCart} sx={{ color: 'white' }}>Try Again</Button>
+          )}
+        </Paper>
+      </Modal>
 
     </div>
   );
