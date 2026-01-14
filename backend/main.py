@@ -4,6 +4,7 @@ import secrets
 import base64
 import uuid
 import shutil
+import httpx
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -288,7 +289,7 @@ async def generate_preview_image(payload: PreviewRequest) -> Dict[str, str]:
     #check1
     # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     #api here
-
+    
     prompt = f"""
     A high-quality, photorealistic fashion design illustration of a {payload.product_name}.
     Details:
@@ -389,3 +390,35 @@ async def get_all_orders():
     for order in orders:
         order["_id"] = str(order["_id"])
     return orders
+
+
+# Chatbot proxy endpoint to bypass CORS
+class ChatbotQueryRequest(BaseModel):
+    query: str
+
+
+@app.post("/chatbot/query")
+async def chatbot_query(request: ChatbotQueryRequest):
+    """
+    Proxy endpoint for chatbot queries to external RAG API
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://rag-medical.onrender.com/query",
+                json={"query": request.query},
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail="Failed to get response from chatbot service"
+                )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Chatbot service timeout")
+    except Exception as e:
+        print(f"Chatbot query error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chatbot service error: {str(e)}")
