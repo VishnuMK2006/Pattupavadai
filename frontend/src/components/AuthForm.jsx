@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -7,15 +7,103 @@ import {
   CircularProgress,
   TextField,
   Link,
+  Divider,
 } from "@mui/material";
+import { FcGoogle } from "react-icons/fc";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function AuthForm({ onAuthSuccess }) {
   const [step, setStep] = useState(1); // 1: email, 2: password/signup details
   const [mode, setMode] = useState("login"); // "login" or "signup"
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Google Auth Initialization
+  useEffect(() => {
+    const initGoogle = () => {
+      /* global google */
+      if (typeof google !== "undefined") {
+        if (!GOOGLE_CLIENT_ID) {
+          setError("Google Client ID is missing. Please check your .env file.");
+          return;
+        }
+
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleResponse,
+        });
+
+        // Render the official button in hidden divs if they exist
+        const renderGoogleBtn = (id) => {
+          const el = document.getElementById(id);
+          if (el) {
+            google.accounts.id.renderButton(el, {
+              theme: "outline",
+              size: "large",
+              width: el.offsetWidth || 350
+            });
+          }
+        };
+
+        renderGoogleBtn("google-signin-step1");
+        renderGoogleBtn("google-signin-step2");
+      }
+    };
+
+    // Retry a few times if script isn't loaded yet
+    const timer = setTimeout(initGoogle, 1000);
+    return () => clearTimeout(timer);
+  }, [step]); // Re-run when step changes to render in new containers
+
+  const handleGoogleResponse = async (response) => {
+    setLoading(true);
+    setError("");
+    try {
+      // Decode the credential (ID Token) to get user info locally
+      const base64Url = response.credential.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      const googleUser = JSON.parse(jsonPayload);
+
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: response.credential,
+          email: googleUser.email,
+          name: googleUser.name,
+          picture: googleUser.picture,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Google authentication failed");
+
+      onAuthSuccess?.(data.user);
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      setError("Google Login failed: " + (err.message || "Please check your network"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    /* global google */
+    if (typeof google !== "undefined") {
+      google.accounts.id.prompt();
+    } else {
+      setError("Google Login script not loaded. Please check your internet connection.");
+    }
+  };
+
   const [form, setForm] = useState({
     email: "",
     name: "",
@@ -49,16 +137,16 @@ export default function AuthForm({ onAuthSuccess }) {
       const payload =
         mode === "signup"
           ? {
-              email: form.email.trim(),
-              name: fullName,
-              shipping_address: form.shippingAddress.trim(),
-              contact_details: form.contactDetails.trim(),
-              password: form.password,
-            }
+            email: form.email.trim(),
+            name: fullName,
+            shipping_address: form.shippingAddress.trim(),
+            contact_details: form.contactDetails.trim(),
+            password: form.password,
+          }
           : {
-              email: form.email.trim(),
-              password: form.password,
-            };
+            email: form.email.trim(),
+            password: form.password,
+          };
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
@@ -202,9 +290,9 @@ export default function AuthForm({ onAuthSuccess }) {
               />
 
               {error && (
-                <Alert 
-                  severity="error" 
-                  sx={{ 
+                <Alert
+                  severity="error"
+                  sx={{
                     mb: 2,
                     fontSize: "12px",
                     bgcolor: "#FFF4E5",
@@ -243,6 +331,20 @@ export default function AuthForm({ onAuthSuccess }) {
               >
                 Continue
               </Button>
+
+              <Box sx={{ my: 2 }}>
+                <Divider sx={{ "&::before, &::after": { borderColor: "#E7E7E7" } }}>
+                  <Typography sx={{ fontSize: "12px", color: "#666", px: 1 }}>or</Typography>
+                </Divider>
+              </Box>
+
+              <Box id="google-signin-step1" sx={{
+                mt: 1,
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                '& iframe': { margin: '0 auto' } // Center the actual iframe
+              }} />
 
               <Typography
                 sx={{
@@ -688,6 +790,20 @@ export default function AuthForm({ onAuthSuccess }) {
               )}
             </Button>
 
+            <Box sx={{ my: 2 }}>
+              <Divider sx={{ "&::before, &::after": { borderColor: "#E7E7E7" } }}>
+                <Typography sx={{ fontSize: "12px", color: "#666", px: 1 }}>or</Typography>
+              </Divider>
+            </Box>
+
+            <Box id="google-signin-step2" sx={{
+              mt: 1,
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              '& iframe': { margin: '0 auto' }
+            }} />
+
             {mode === "signup" && (
               <Typography
                 sx={{
@@ -728,29 +844,29 @@ export default function AuthForm({ onAuthSuccess }) {
           {mode === "login" && (
             <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #E7E7E7" }}>
               <Link
-              component="button"
-              type="button"
-              onClick={() => {
-                if (form.email.trim()) {
-                  setMode("login");
-                  setStep(2);
-                } else {
-                  setError("Please enter your email or mobile number first");
-                }
-              }}
-              sx={{
-                fontSize: "13px",
-                color: "#146EB4",
-                textDecoration: "none",
-                fontFamily: "Arial, sans-serif",
-                cursor: "pointer",
-                background: "none",
-                border: "none",
-                "&:hover": { color: "#FF9900", textDecoration: "underline" },
-              }}
-            >
-              -Back
-            </Link>
+                component="button"
+                type="button"
+                onClick={() => {
+                  if (form.email.trim()) {
+                    setMode("login");
+                    setStep(2);
+                  } else {
+                    setError("Please enter your email or mobile number first");
+                  }
+                }}
+                sx={{
+                  fontSize: "13px",
+                  color: "#146EB4",
+                  textDecoration: "none",
+                  fontFamily: "Arial, sans-serif",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  "&:hover": { color: "#FF9900", textDecoration: "underline" },
+                }}
+              >
+                -Back
+              </Link>
             </Box>
           )}
 
@@ -788,6 +904,6 @@ export default function AuthForm({ onAuthSuccess }) {
           )}
         </Box>
       </Box>
-    </Box>
+    </Box >
   );
 }

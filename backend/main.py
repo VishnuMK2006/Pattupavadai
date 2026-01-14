@@ -6,6 +6,11 @@ import uuid
 import shutil
 import httpx
 
+import bcrypt
+# Fix for passlib/bcrypt issue
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("bcrypt_about", (), {"__version__": bcrypt.__version__})
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +21,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import asyncio
 import traceback
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 
 load_dotenv()
@@ -76,6 +83,13 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    token: str  # ID Token from Google
+    email: EmailStr
+    name: str
+    picture: str = None
 
 
 class UserResponse(BaseModel):
@@ -213,7 +227,63 @@ async def login(payload: LoginRequest):
     token = issue_token()
     await users_col.update_one({"email": payload.email}, {"$set": {"token": token}})
     record["token"] = token
-    return {"user": serialize_user(record)}
+    return {"user": serialize_user( record)}
+
+
+@app.post("/auth/google", response_model=Dict[str, UserResponse])
+async def google_auth(payload: GoogleLoginRequest):
+    """
+    Handles Google Social Login with Server-side verification.
+    """
+    try:
+        # Verify the ID token with Google
+        # The 'token' in payload should be the credential string from GSI
+        google_client_id = os.environ.get("VITE_GOOGLE_CLIENT_ID")
+        id_info = id_token.verify_oauth2_token(
+            payload.token, 
+            google_requests.Request(), 
+            google_client_id,
+            clock_skew_in_seconds=300
+        )
+
+        # ID token is valid. Check info.
+        email = id_info['email']
+        name = id_info.get('name', 'Google User')
+        picture = id_info.get('picture')
+
+        # Check if user already exists
+        record = await get_user(email)
+        
+        token = issue_token()
+        
+        if not record:
+            # Create new user for first-time social login
+            user_doc = {
+                "email": email,
+                "name": name,
+                "shipping_address": "Not provided (Social Login)",
+                "contact_details": "Not provided (Social Login)",
+                "password_hash": "SOCIAL_AUTH", # No password for social login
+                "token": token,
+                "picture": picture,
+                "auth_provider": "google"
+            }
+            await users_col.insert_one(user_doc)
+            record = user_doc
+        else:
+            # Update existing user's token
+            await users_col.update_one({"email": email}, {"$set": {"token": token}})
+            record["token"] = token
+
+        return {"user": serialize_user(record)}
+        
+    except ValueError as e:
+        # Invalid token
+        print(f"Google Token Verification Failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except Exception as e:
+        print(f"Social Auth Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Authentication server error")
 
 
 # ---------------------------
