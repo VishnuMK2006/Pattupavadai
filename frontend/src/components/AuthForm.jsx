@@ -8,7 +8,10 @@ import {
   TextField,
   Link,
   Divider,
+  InputAdornment,
+  IconButton as MuiIconButton,
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { FcGoogle } from "react-icons/fc";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -19,6 +22,7 @@ export default function AuthForm({ onAuthSuccess }) {
   const [mode, setMode] = useState("login"); // "login" or "signup"
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Google Auth Initialization
   useEffect(() => {
@@ -26,36 +30,36 @@ export default function AuthForm({ onAuthSuccess }) {
       /* global google */
       if (typeof google !== "undefined") {
         if (!GOOGLE_CLIENT_ID) {
-          setError("Google Client ID is missing. Please check your .env file.");
+          console.error("Google Client ID is missing.");
           return;
         }
 
+        // Initialize only once
         google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleResponse,
         });
 
-        // Render the official button in hidden divs if they exist
-        const renderGoogleBtn = (id) => {
-          const el = document.getElementById(id);
-          if (el) {
-            google.accounts.id.renderButton(el, {
-              theme: "outline",
-              size: "large",
-              width: el.offsetWidth || 350
-            });
+        // Always try to render both, the function handles missing elements
+        const renderBtns = () => {
+          const btn1 = document.getElementById("google-signin-step1");
+          if (btn1) {
+            google.accounts.id.renderButton(btn1, { theme: "outline", size: "large", width: 350 });
+          }
+          const btn2 = document.getElementById("google-signin-step2");
+          if (btn2) {
+            google.accounts.id.renderButton(btn2, { theme: "outline", size: "large", width: 350 });
           }
         };
 
-        renderGoogleBtn("google-signin-step1");
-        renderGoogleBtn("google-signin-step2");
+        // Small delay to ensure DOM is ready
+        setTimeout(renderBtns, 100);
       }
     };
 
-    // Retry a few times if script isn't loaded yet
     const timer = setTimeout(initGoogle, 1000);
     return () => clearTimeout(timer);
-  }, [step]); // Re-run when step changes to render in new containers
+  }, [step]);
 
   const handleGoogleResponse = async (response) => {
     setLoading(true);
@@ -148,6 +152,7 @@ export default function AuthForm({ onAuthSuccess }) {
             password: form.password,
           };
 
+      console.log(`Attempting ${mode} via ${endpoint}...`);
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,13 +160,16 @@ export default function AuthForm({ onAuthSuccess }) {
       });
 
       const data = await response.json();
+      console.log("Auth Response:", data);
+
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to authenticate. Please try again.");
+        throw new Error(data.detail || "Unable to authenticate. Please check your credentials.");
       }
 
       onAuthSuccess?.(data.user);
     } catch (err) {
-      setError(err.message);
+      console.error("Auth Error:", err);
+      setError(err.message || "Network error. Please ensure the backend is running.");
     } finally {
       setLoading(false);
     }
@@ -171,12 +179,11 @@ export default function AuthForm({ onAuthSuccess }) {
     return (
       <Box
         sx={{
-          minHeight: "100vh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           bgcolor: "#FFFFFF",
-          px: 2,
+          p: 3,
         }}
       >
         <Box
@@ -382,48 +389,45 @@ export default function AuthForm({ onAuthSuccess }) {
             </Box>
           </Box>
 
-          {/* Create Account Link */}
+          {/* New to Kuzhavi Kids? */}
           <Box
             sx={{
               width: "100%",
-              mt: 2,
+              mt: 3,
               textAlign: "center",
             }}
           >
-            <Typography
-              sx={{
-                fontSize: "13px",
-                color: "#666666",
-                fontFamily: "Arial, sans-serif",
-                mb: 1,
-              }}
-            >
-              Buying for work?
-            </Typography>
-            <Link
-              component="button"
-              type="button"
+            <Divider sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: "12px", color: "#767676" }}>New to Kuzhavi Kids?</Typography>
+            </Divider>
+            <Button
+              fullWidth
+              variant="outlined"
               onClick={() => {
-                if (form.email.trim()) {
-                  setMode("signup");
-                  setStep(2);
-                } else {
-                  setError("Please enter your email or mobile number first");
-                }
+                setMode("signup");
+                setStep(2);
+                setError("");
               }}
               sx={{
+                bgcolor: "#f0f2f2",
+                color: "#111111",
+                textTransform: "none",
                 fontSize: "13px",
-                color: "#146EB4",
-                textDecoration: "none",
+                fontWeight: 400,
+                py: "6px",
+                borderRadius: "8px",
+                boxShadow: "none",
+                border: "1px solid #D5D9D9",
                 fontFamily: "Arial, sans-serif",
-                cursor: "pointer",
-                background: "none",
-                border: "none",
-                "&:hover": { color: "#FF9900", textDecoration: "underline" },
+                "&:hover": {
+                  bgcolor: "#e7e9e9",
+                  borderColor: "#adb1b1",
+                  boxShadow: "none",
+                },
               }}
             >
-              Create a free business account
-            </Link>
+              Create your Kuzhavi Kids account
+            </Button>
           </Box>
         </Box>
       </Box>
@@ -436,12 +440,11 @@ export default function AuthForm({ onAuthSuccess }) {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         bgcolor: "#FFFFFF",
-        px: 2,
+        p: 3,
       }}
     >
       <Box
@@ -499,51 +502,21 @@ export default function AuthForm({ onAuthSuccess }) {
           <Typography
             variant="h5"
             sx={{
-              fontSize: "28px",
-              fontWeight: 400,
+              fontSize: "24px",
+              fontWeight: 700,
               color: "#111111",
-              mb: 0.5,
+              mb: 1,
               fontFamily: "Arial, sans-serif",
             }}
           >
             {mode === "login" ? "Sign in" : "Create account"}
           </Typography>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              mb: 2,
-              pb: 1.5,
-              borderBottom: "1px solid #E7E7E7",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "13px",
-                color: "#111111",
-                fontFamily: "Arial, sans-serif",
-              }}
-            >
-              {form.email}
+          {mode === "login" && (
+            <Typography sx={{ fontSize: '13px', color: '#666', mb: 2 }}>
+              Logging in as: <strong>{form.email}</strong>
             </Typography>
-            <Link
-              component="button"
-              type="button"
-              onClick={() => setStep(1)}
-              sx={{
-                fontSize: "13px",
-                color: "#146EB4",
-                textDecoration: "none",
-                cursor: "pointer",
-                fontFamily: "Arial, sans-serif",
-                "&:hover": { color: "#FF9900", textDecoration: "underline" },
-              }}
-            >
-              Change
-            </Link>
-          </Box>
+          )}
 
           <Box component="form" onSubmit={handleSubmit}>
             {mode === "signup" && (
@@ -571,22 +544,42 @@ export default function AuthForm({ onAuthSuccess }) {
                       fontSize: "13px",
                       bgcolor: "#FFFFFF",
                       fontFamily: "Arial, sans-serif",
-                      "& fieldset": {
-                        borderColor: "#888C8C",
-                        borderRadius: "4px",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#FF9900",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#FF9900",
-                        borderWidth: "1px",
-                        boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)",
-                      },
+                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
+                      "&:hover fieldset": { borderColor: "#FF9900" },
+                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
                     },
-                    "& .MuiOutlinedInput-input": {
-                      padding: "7px 10px",
+                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: "#111111",
+                    mb: "4px",
+                    fontFamily: "Arial, sans-serif",
+                  }}
+                >
+                  Email or mobile number
+                </Typography>
+                <TextField
+                  fullWidth
+                  value={form.email}
+                  onChange={handleChange("email")}
+                  placeholder="Email or mobile phone number"
+                  required
+                  sx={{
+                    mb: 1.5,
+                    "& .MuiOutlinedInput-root": {
+                      fontSize: "13px",
+                      bgcolor: "#FFFFFF",
+                      fontFamily: "Arial, sans-serif",
+                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
+                      "&:hover fieldset": { borderColor: "#FF9900" },
+                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
                     },
+                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
                   }}
                 />
 
@@ -605,30 +598,18 @@ export default function AuthForm({ onAuthSuccess }) {
                   fullWidth
                   value={form.contactDetails}
                   onChange={handleChange("contactDetails")}
-                  placeholder="Mobile number"
-                  required
+                  placeholder="Alternative mobile number (optional)"
                   sx={{
                     mb: 1.5,
                     "& .MuiOutlinedInput-root": {
                       fontSize: "13px",
                       bgcolor: "#FFFFFF",
                       fontFamily: "Arial, sans-serif",
-                      "& fieldset": {
-                        borderColor: "#888C8C",
-                        borderRadius: "4px",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#FF9900",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#FF9900",
-                        borderWidth: "1px",
-                        boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)",
-                      },
+                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
+                      "&:hover fieldset": { borderColor: "#FF9900" },
+                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
                     },
-                    "& .MuiOutlinedInput-input": {
-                      padding: "7px 10px",
-                    },
+                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
                   }}
                 />
 
@@ -649,7 +630,7 @@ export default function AuthForm({ onAuthSuccess }) {
                   rows={2}
                   value={form.shippingAddress}
                   onChange={handleChange("shippingAddress")}
-                  placeholder="Enter your complete address"
+                  placeholder="Enter your complete address for delivery"
                   required
                   sx={{
                     mb: 1.5,
@@ -657,22 +638,11 @@ export default function AuthForm({ onAuthSuccess }) {
                       fontSize: "13px",
                       bgcolor: "#FFFFFF",
                       fontFamily: "Arial, sans-serif",
-                      "& fieldset": {
-                        borderColor: "#888C8C",
-                        borderRadius: "4px",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#FF9900",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#FF9900",
-                        borderWidth: "1px",
-                        boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)",
-                      },
+                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
+                      "&:hover fieldset": { borderColor: "#FF9900" },
+                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
                     },
-                    "& .MuiOutlinedInput-input": {
-                      padding: "7px 10px",
-                    },
+                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
                   }}
                 />
               </>
@@ -691,11 +661,25 @@ export default function AuthForm({ onAuthSuccess }) {
             </Typography>
             <TextField
               fullWidth
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={form.password}
               onChange={handleChange("password")}
               placeholder={mode === "signup" ? "At least 6 characters" : ""}
               required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <MuiIconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+                    </MuiIconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={{
                 mb: 1,
                 "& .MuiOutlinedInput-root": {
@@ -847,12 +831,9 @@ export default function AuthForm({ onAuthSuccess }) {
                 component="button"
                 type="button"
                 onClick={() => {
-                  if (form.email.trim()) {
-                    setMode("login");
-                    setStep(2);
-                  } else {
-                    setError("Please enter your email or mobile number first");
-                  }
+                  setMode("login");
+                  setStep(1);
+                  setError("");
                 }}
                 sx={{
                   fontSize: "13px",
@@ -885,7 +866,8 @@ export default function AuthForm({ onAuthSuccess }) {
                   type="button"
                   onClick={() => {
                     setMode("login");
-                    // Stay on step 2 if already there, don't go back to step 1
+                    setStep(1);
+                    setError("");
                   }}
                   sx={{
                     color: "#146EB4",

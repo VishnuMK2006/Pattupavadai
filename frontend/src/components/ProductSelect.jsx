@@ -1,47 +1,82 @@
 import { useState } from 'react';
-import { Box, Button, Typography, Card, CardContent, CardMedia, Chip, Grid, Container } from '@mui/material';
-import { Star, LocalOffer } from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  CardMedia,
+  Chip,
+  Grid,
+  Container,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Avatar,
+  Stack,
+} from '@mui/material';
+import {
+  Star,
+  LocalOffer,
+  FavoriteBorder,
+  ShoppingBagOutlined,
+  FilterAltOutlined,
+  Logout,
+  ArrowBack,
+  Person,
+} from '@mui/icons-material';
+import { Menu, MenuItem, Divider as MuiDivider } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import the available category thumbnails
 import pattuImageUrl from '../assets/category/i1.png';
 import ethnicFrockImageUrl from '../assets/category/i2.png';
 import kurthaImageUrl from '../assets/category/i3.png';
 
+const luxuryColors = {
+  maroon: '#4C0013',
+  gold: '#B38B00',
+  ivory: '#FFFDF5',
+  dark: '#1A0006',
+  goldLight: '#D4AF37',
+  textHeader: '#333'
+};
+
 const defaultProducts = [
   {
     id: "pattu-paavadai",
-    name: "Pattu Paavadai",
-    blurb: "Handwoven silk skirt set crafted for festive shine.",
-    tag: "Traditional",
+    name: "Classic Pattu Paavadai",
+    blurb: "Handwoven Kanchipuram silk skirt set with intricate zari work.",
+    tag: "Artisan Choice",
     price: "₹1,500",
     originalPrice: "₹3,999",
-    discount: "50% off",
-    rating: 4.5,
+    discount: "62% off",
+    rating: 4.8,
     reviews: 234,
     image: pattuImageUrl
   },
   {
     id: "ethnic-frock",
-    name: "Ethnic Frock",
-    blurb: "Lightweight frock with zari trims for celebrations.",
-    tag: "Festive",
+    name: "Golden Zari Frock",
+    blurb: "A contemporary ethnic frock with traditional South Indian motifs.",
+    tag: "Festive Edit",
     price: "₹1,499",
     originalPrice: "₹2,999",
     discount: "50% off",
-    rating: 4.3,
+    rating: 4.5,
     reviews: 156,
     image: ethnicFrockImageUrl,
     comingSoon: true
   },
   {
     id: "kurta-pyjama",
-    name: "Kurta Pyjama",
-    blurb: "Classic kurta with comfy pyjama for all-day wear.",
-    tag: "Casual",
+    name: "Royal Kurta Set",
+    blurb: "Elegant Raw Silk Kurta with matching pajamas for the young prince.",
+    tag: "Signature",
     price: "₹1,799",
     originalPrice: "₹3,499",
     discount: "49% off",
-    rating: 4.6,
+    rating: 4.7,
     reviews: 189,
     image: kurthaImageUrl,
     comingSoon: true
@@ -54,8 +89,19 @@ const FALLBACK_IMAGES = {
   'kurta-pyjama': kurthaImageUrl
 };
 
+const MotionCard = motion(Card);
+
 export default function ProductSelect({ onSelect, products = defaultProducts, user, onSignOut }) {
   const [hoveredProduct, setHoveredProduct] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleProfileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleProductClick = (product) => {
     onSelect?.(product);
@@ -65,163 +111,144 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#FFFFFF',
-        pb: 4,
+        bgcolor: luxuryColors.ivory,
+        pb: 10,
       }}
     >
-      {/* Header Bar */}
-      <Box
+      {/* Premium Header */}
+      <AppBar
+        position="sticky"
+        elevation={0}
         sx={{
-          bgcolor: '#2874F0',
-          color: 'white',
-          py: 1.5,
-          px: 3,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          bgcolor: 'white',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          color: luxuryColors.maroon,
         }}
       >
-        <Typography
-          sx={{
-            fontSize: 24,
-            fontWeight: 700,
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'italic',
-          }}
-        >
-          Kuzhavi_kids
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          {user && (
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: 'white',
-                fontFamily: 'Arial, sans-serif',
-              }}
-            >
-              Hello, {user.email?.split('@')[0]}
-            </Typography>
-          )}
-          {onSignOut && (
-            <Button
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 8 }, py: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
               onClick={onSignOut}
               sx={{
-                color: 'white',
-                textTransform: 'none',
-                fontSize: 14,
-                fontFamily: 'Arial, sans-serif',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                },
+                color: luxuryColors.maroon,
+                bgcolor: 'rgba(76, 0, 19, 0.05)',
+                '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.1)' }
               }}
             >
-              Sign Out
-            </Button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Breadcrumb & Title Section */}
-      <Container maxWidth="xl" sx={{ mt: 3 }}>
-        <Typography
-          sx={{
-            fontSize: 12,
-            color: '#666666',
-            mb: 1,
-            fontFamily: 'Arial, sans-serif',
-          }}
-        >
-          Home › Clothing › Ethnic Wear
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              fontSize: 22,
-              fontWeight: 500,
-              color: '#111111',
-              fontFamily: 'Arial, sans-serif',
-            }}
-          >
-            Select your category
-          </Typography>
-          <Typography
-            variant="h5"
-            sx={{
-              fontSize: 22,
-              fontWeight: 500,
-              color: '#111111',
-              fontFamily: 'Arial, sans-serif',
-            }}
-          >
-            Traditional Wear
-          </Typography>
-        </Box>
-
-        <Typography
-          sx={{
-            fontSize: 13,
-            color: '#666666',
-            mb: 3,
-            fontFamily: 'Arial, sans-serif',
-          }}
-        >
-          {products.length} Products
-        </Typography>
-
-        {/* Sort Options */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2,
-            mb: 3,
-            pb: 2,
-            borderBottom: '1px solid #E0E0E0',
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: 13,
-              color: '#111111',
-              fontWeight: 600,
-              fontFamily: 'Arial, sans-serif',
-            }}
-          >
-            Sort By:
-          </Typography>
-          {['Relevance', 'Popularity', 'Price -- Low to High', 'Newest First'].map((option, idx) => (
-            <Button
-              key={option}
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h5"
               sx={{
-                textTransform: 'none',
-                fontSize: 13,
-                color: idx === 0 ? '#2874F0' : '#666666',
-                fontWeight: idx === 0 ? 600 : 400,
-                minWidth: 'auto',
-                px: 1,
-                fontFamily: 'Arial, sans-serif',
-                '&:hover': {
-                  bgcolor: 'transparent',
-                  color: '#2874F0',
-                },
+                fontWeight: 900,
+                fontFamily: '"Playfair Display", serif',
+                color: luxuryColors.maroon,
+                cursor: 'pointer'
+              }}
+              onClick={onSignOut}
+            >
+              Kuzhavi<span style={{ color: luxuryColors.gold }}>_Kids</span>
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+            <IconButton
+              onClick={handleProfileMenuOpen}
+              sx={{ p: 0.5 }}
+            >
+              <Avatar sx={{
+                bgcolor: 'rgba(179, 139, 0, 0.1)',
+                color: luxuryColors.gold,
+                width: 32,
+                height: 32,
+                border: `1.5px solid ${luxuryColors.gold}`
+              }}>
+                <Person sx={{ fontSize: 20 }} />
+              </Avatar>
+            </IconButton>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleProfileMenuClose}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  minWidth: 180,
+                }
+              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <Typography sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '14px' }}>
+                  {user?.email?.split('@')[0]}
+                </Typography>
+                <Typography sx={{ color: '#999', fontSize: '12px' }}>{user?.email}</Typography>
+              </Box>
+              <MuiDivider />
+              <MenuItem onClick={onSignOut} sx={{ color: '#d32f2f' }}>
+                <Logout sx={{ fontSize: 20, mr: 2 }} />
+                <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Main Content */}
+      <Container maxWidth="xl" sx={{ mt: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{
+                color: luxuryColors.gold,
+                fontWeight: 700,
+                letterSpacing: '3px'
               }}
             >
-              {option}
-            </Button>
-          ))}
+              BROWSE COLLECTIONS
+            </Typography>
+            <Typography
+              variant="h2"
+              sx={{
+                fontFamily: '"Playfair Display", serif',
+                fontWeight: 800,
+                color: luxuryColors.maroon,
+                mt: 1
+              }}
+            >
+              Find Their <span style={{ fontStyle: 'italic', fontWeight: 400 }}>Perfect Fit</span>
+            </Typography>
+          </Box>
+          <Button
+            startIcon={<FilterAltOutlined />}
+            sx={{
+              color: luxuryColors.maroon,
+              fontWeight: 600,
+              border: '1px solid #DDD',
+              borderRadius: '50px',
+              px: 4
+            }}
+          >
+            FILTERS
+          </Button>
         </Box>
 
         {/* Product Grid */}
-        <Grid container spacing={2}>
-          {products.map((product) => {
+        <Grid container spacing={5}>
+          {products.map((product, index) => {
             const productImage = product.image ?? FALLBACK_IMAGES[product.id] ?? pattuImageUrl;
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                <Card
+              <Grid item xs={12} sm={6} md={4} key={product.id}>
+                <MotionCard
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                   onMouseEnter={() => setHoveredProduct(product.id)}
                   onMouseLeave={() => setHoveredProduct(null)}
                   sx={{
@@ -229,250 +256,169 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    border: '1px solid #E0E0E0',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: hoveredProduct === product.id 
-                      ? '0 4px 12px rgba(0,0,0,0.15)' 
-                      : '0 2px 4px rgba(0,0,0,0.08)',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                    },
+                    bgcolor: 'white',
+                    borderRadius: '24px',
+                    transition: '0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    boxShadow: hoveredProduct === product.id
+                      ? '0 30px 60px rgba(76, 0, 19, 0.1)'
+                      : '0 10px 30px rgba(0,0,0,0.03)',
+                    border: hoveredProduct === product.id ? `1px solid ${luxuryColors.gold}` : '1px solid transparent',
+                    overflow: 'hidden'
                   }}
                   onClick={() => handleProductClick(product)}
                 >
-                  {/* Product Image */}
-                  <Box sx={{ position: 'relative', bgcolor: '#FAFAFA' }}>
+                  {/* Product Image Section */}
+                  <Box sx={{ position: 'relative', height: 450, overflow: 'hidden' }}>
                     <CardMedia
                       component="img"
                       image={productImage}
                       alt={product.name}
                       sx={{
-                        height: 280,
-                        objectFit: 'contain',
-                        p: 2,
-                        filter: product.comingSoon ? 'grayscale(100%)' : 'none',
-                        opacity: product.comingSoon ? 0.6 : 1,
+                        height: '100%',
+                        width: '100%',
+                        objectFit: 'cover',
+                        transition: 'scale 0.8s ease',
+                        scale: hoveredProduct === product.id ? 1.05 : 1,
+                        filter: product.comingSoon ? 'grayscale(100%) blur(2px)' : 'none',
                       }}
                     />
-                    
-                    {/* Discount Badge */}
-                    {product.discount && (
-                      <Chip
-                        icon={<LocalOffer sx={{ fontSize: 14, color: 'white !important' }} />}
-                        label={product.discount}
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          left: 12,
-                          bgcolor: '#FF9900',
-                          color: 'white',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          height: 24,
-                          fontFamily: 'Arial, sans-serif',
-                          '& .MuiChip-icon': {
-                            color: 'white',
-                          },
-                        }}
-                      />
-                    )}
 
-                    {/* Tag Badge or Coming Soon */}
-                    {product.comingSoon ? (
-                      <Chip
-                        label="Coming Soon"
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          right: 12,
-                          bgcolor: '#666666',
-                          color: 'white',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          height: 22,
-                          fontFamily: 'Arial, sans-serif',
-                        }}
-                      />
-                    ) : product.tag && (
+                    {/* Overlay Badges */}
+                    <Box sx={{ position: 'absolute', top: 20, left: 20, right: 20, display: 'flex', justifyContent: 'space-between' }}>
                       <Chip
                         label={product.tag}
                         sx={{
-                          position: 'absolute',
-                          top: 12,
-                          right: 12,
-                          bgcolor: '#2874F0',
-                          color: 'white',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          height: 22,
-                          fontFamily: 'Arial, sans-serif',
+                          bgcolor: 'white',
+                          color: luxuryColors.maroon,
+                          fontWeight: 600,
+                          fontSize: '11px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px'
                         }}
                       />
+                      <IconButton sx={{ bgcolor: 'white', '&:hover': { bgcolor: luxuryColors.maroon, color: 'white' } }}>
+                        <FavoriteBorder sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    </Box>
+
+                    {product.comingSoon && (
+                      <Box sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        bgcolor: 'rgba(26,0,6,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Typography sx={{ color: 'white', fontWeight: 800, letterSpacing: '4px', border: '2px solid white', px: 3, py: 1 }}>
+                          COMING SOON
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
 
-                  <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                    {/* Product Name */}
+                  <CardContent sx={{ p: 4 }}>
                     <Typography
                       sx={{
-                        fontSize: 15,
-                        fontWeight: 500,
-                        color: '#111111',
-                        mb: 0.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        fontFamily: 'Arial, sans-serif',
-                        lineHeight: 1.4,
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: luxuryColors.maroon,
+                        mb: 1,
+                        fontFamily: '"Playfair Display", serif',
                       }}
                     >
                       {product.name}
                     </Typography>
 
-                    {/* Product Description */}
                     <Typography
                       sx={{
-                        fontSize: 13,
-                        color: '#666666',
-                        mb: 1.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        fontFamily: 'Arial, sans-serif',
-                        lineHeight: 1.3,
+                        fontSize: '14px',
+                        color: 'rgba(0,0,0,0.5)',
+                        mb: 3,
+                        minHeight: '42px',
+                        lineHeight: 1.5
                       }}
                     >
                       {product.blurb}
                     </Typography>
 
-                    {/* Rating */}
-                    {product.rating && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.3,
-                            bgcolor: '#388E3C',
-                            color: 'white',
-                            px: 0.8,
-                            py: 0.2,
-                            borderRadius: '4px',
-                          }}
-                        >
-                          <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: 'Arial, sans-serif' }}>
-                            {product.rating}
-                          </Typography>
-                          <Star sx={{ fontSize: 12 }} />
-                        </Box>
-                        <Typography sx={{ fontSize: 12, color: '#666666', fontFamily: 'Arial, sans-serif' }}>
-                          ({product.reviews?.toLocaleString() || 0})
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography sx={{ fontSize: '12px', color: luxuryColors.gold, fontWeight: 700 }}>
+                          PRICE
                         </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography sx={{ fontSize: '24px', fontWeight: 800, color: luxuryColors.maroon }}>
+                            {product.price}
+                          </Typography>
+                          <Typography sx={{ fontSize: '14px', color: '#AAA', textDecoration: 'line-through' }}>
+                            {product.originalPrice}
+                          </Typography>
+                        </Box>
                       </Box>
-                    )}
 
-                    {/* Price */}
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1.5 }}>
-                      <Typography
+                      <Button
+                        variant="outlined"
+                        disabled={product.comingSoon}
                         sx={{
-                          fontSize: 20,
-                          fontWeight: 600,
-                          color: '#111111',
-                          fontFamily: 'Arial, sans-serif',
+                          borderColor: luxuryColors.gold,
+                          color: luxuryColors.gold,
+                          borderRadius: '50px',
+                          px: 3,
+                          textTransform: 'none',
+                          fontWeight: 700,
+                          '&:hover': {
+                            bgcolor: luxuryColors.gold,
+                            color: 'white',
+                            borderColor: luxuryColors.gold
+                          }
                         }}
                       >
-                        {product.price || '₹1,999'}
-                      </Typography>
-                      {product.originalPrice && (
-                        <Typography
-                          sx={{
-                            fontSize: 14,
-                            color: '#666666',
-                            textDecoration: 'line-through',
-                            fontFamily: 'Arial, sans-serif',
-                          }}
-                        >
-                          {product.originalPrice}
-                        </Typography>
-                      )}
-                      {product.discount && (
-                        <Typography
-                          sx={{
-                            fontSize: 13,
-                            color: '#388E3C',
-                            fontWeight: 600,
-                            fontFamily: 'Arial, sans-serif',
-                          }}
-                        >
-                          {product.discount}
-                        </Typography>
-                      )}
+                        {product.comingSoon ? 'Private' : 'Design Now'}
+                      </Button>
                     </Box>
-
-                    {/* Add to Cart Button */}
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      disabled={product.comingSoon}
-                      sx={{
-                        bgcolor: product.comingSoon ? '#E0E0E0' : '#FF9900',
-                        color: product.comingSoon ? '#999999' : '#111111',
-                        textTransform: 'none',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        py: 1,
-                        borderRadius: '4px',
-                        boxShadow: 'none',
-                        fontFamily: 'Arial, sans-serif',
-                        '&:hover': {
-                          bgcolor: product.comingSoon ? '#E0E0E0' : '#E88900',
-                          boxShadow: 'none',
-                        },
-                        '&.Mui-disabled': {
-                          bgcolor: '#E0E0E0',
-                          color: '#999999',
-                        },
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!product.comingSoon) {
-                          handleProductClick(product);
-                        }
-                      }}
-                    >
-                      {product.comingSoon ? 'Coming Soon' : 'Select & Customize'}
-                    </Button>
                   </CardContent>
-                </Card>
+                </MotionCard>
               </Grid>
             );
           })}
         </Grid>
 
-        {/* Free Delivery Banner */}
+        {/* Luxury Banner */}
         <Box
           sx={{
-            mt: 4,
-            p: 2,
-            bgcolor: '#F2F2F2',
-            borderRadius: '4px',
+            mt: 10,
+            p: 8,
+            bgcolor: luxuryColors.maroon,
+            borderRadius: '40px',
             textAlign: 'center',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          <Typography
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Typography variant="h4" sx={{ fontFamily: '"Playfair Display", serif', mb: 2 }}>Handcrafted with Love</Typography>
+            <Typography sx={{ opacity: 0.7, maxWidth: '600px', mx: 'auto', mb: 4 }}>
+              Join thousand of parents who trust Kuzhavi Kids for their children's special moments. Premium fabrics, ethical sourcing, and timeless designs.
+            </Typography>
+            <Stack direction="row" spacing={4} justifyContent="center">
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px' }}>✓ GLOBAL SHIPPING</Typography>
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px' }}>✓ CUSTOM TAILORING</Typography>
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px' }}>✓ SECURE PAYMENT</Typography>
+            </Stack>
+          </Box>
+          <Box
             sx={{
-              fontSize: 14,
-              color: '#111111',
-              fontFamily: 'Arial, sans-serif',
+              position: 'absolute',
+              top: -100,
+              right: -100,
+              width: '300px',
+              height: '300px',
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.05)'
             }}
-          >
-            ✓ Free Delivery on orders above ₹500 | ✓ Cash on Delivery available
-          </Typography>
+          />
         </Box>
       </Container>
     </Box>
