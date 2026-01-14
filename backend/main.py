@@ -299,11 +299,11 @@ async def analyze_dress(payload: AnalyzeRequest):
     if "," in image_data:
         image_data = image_data.split(",")[1]
 
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        print("Error: OPENAI_API_KEY not found in environment")
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
-
+    # api_key = os.environ.get("OPENAI_API_KEY")
+    # if not api_key:
+    #     print("Error: OPENAI_API_KEY not found in environment")
+    #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    #api here
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     try:
         full_image_url = image_data if image_data.startswith("data:") else f"data:image/jpeg;base64,{image_data}"
@@ -427,11 +427,11 @@ Return output strictly in this JSON structure:
 async def generate_preview_image(payload: PreviewRequest) -> Dict[str, str]:
     print(f"Incoming preview request for: {payload.user_email}")
     # Use the key from image_gen.py as fallback if env not set
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        print("Key nahi")
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
-
+    # api_key = os.environ.get("OPENAI_API_KEY")
+    # if not api_key:
+    #     print("Key nahi")
+    #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    #api here
     client = OpenAI(api_key=api_key)
 
     prompt = f"""
