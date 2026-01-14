@@ -253,7 +253,7 @@ export default function AuthForm({ onAuthSuccess }) {
                   fontFamily: "Arial, sans-serif",
                 }}
               >
-                By continuing, you agree to Pattupavadai's{" "}
+                By continuing, you agree to Kuzhavi_Kids's{" "}
                 <Link
                   href="#"
                   sx={{
@@ -369,7 +369,7 @@ export default function AuthForm({ onAuthSuccess }) {
               letterSpacing: "-1px",
             }}
           >
-            pattupavadai
+            Kuzhavi_Kids
           </Typography>
           <Box
             component="span"
@@ -684,7 +684,7 @@ export default function AuthForm({ onAuthSuccess }) {
               ) : mode === "login" ? (
                 "Sign in"
               ) : (
-                "Create your Pattupavadai account"
+                "Create your account"
               )}
             </Button>
 
@@ -698,7 +698,7 @@ export default function AuthForm({ onAuthSuccess }) {
                   fontFamily: "Arial, sans-serif",
                 }}
               >
-                By creating an account, you agree to Pattupavadai's{" "}
+                By creating an account, you agree to Kuzhavi_Kids's{" "}
                 <Link
                   href="#"
                   sx={{

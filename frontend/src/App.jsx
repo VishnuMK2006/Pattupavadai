@@ -9,6 +9,7 @@ import AdminPanel from "./components/AdminPanel";
 import PaymentModal from "./components/PaymentModal";
 import CartDrawer from "./components/CartDrawer";
 import Dashboard from "./components/Dashboard";
+import Chatbot from "./components/Chatbot";
 
 // Import product images
 import pattuImageUrl from './assets/category/i1.png';
@@ -232,10 +233,61 @@ function App() {
   };
 
   const products = [
-    { id: "pattu-paavadai", name: "Pattu Paavadai", blurb: "Handwoven silk skirt set crafted for festive shine.", accent: "#fbbf24", image: pattuImageUrl },
-    { id: "ethnic-frock", name: "Ethnic Frock", blurb: "Lightweight frock with zari trims for celebrations.", accent: "#a855f7", image: ethnicFrockImageUrl },
-    { id: "kurta-pyjama", name: "Kurta Pyjama", blurb: "Classic kurta with comfy pyjama for all-day wear.", accent: "#38bdf8", image: kurthaImageUrl },
-    { id: "kurta-pant", name: "Kurta Pant", blurb: "Structured kurta paired with modern slim pants.", accent: "#22c55e", image: pattuImageUrl },
+    { 
+      id: "pattu-paavadai", 
+      name: "Pattu Paavadai", 
+      blurb: "Handwoven silk skirt set crafted for festive shine.", 
+      accent: "#fbbf24", 
+      image: pattuImageUrl,
+      tag: "Traditional",
+      price: "₹499",
+      originalPrice: "₹3,999",
+      discount: "50% off",
+      rating: 4.5,
+      reviews: 234
+    },
+    { 
+      id: "ethnic-frock", 
+      name: "Ethnic Frock", 
+      blurb: "Lightweight frock with zari trims for celebrations.", 
+      accent: "#a855f7", 
+      image: ethnicFrockImageUrl, 
+      comingSoon: true,
+      tag: "Festive",
+      price: "₹0",
+      originalPrice: "₹2,999",
+      discount: "50% off",
+      rating: 4.3,
+      reviews: 156
+    },
+    { 
+      id: "kurta-pyjama", 
+      name: "Kurta Pyjama", 
+      blurb: "Classic kurta with comfy pyjama for all-day wear.", 
+      accent: "#38bdf8", 
+      image: kurthaImageUrl, 
+      comingSoon: true,
+      tag: "Casual",
+      price: "₹0",
+      originalPrice: "₹3,499",
+      discount: "49% off",
+      rating: 4.6,
+      reviews: 189
+    },
+    { 
+      id: "kurta-pant", 
+      name: "Kurta Pant", 
+      blurb: "Structured kurta paired with modern slim pants.", 
+      accent: "#22c55e", 
+      image: pattuImageUrl, 
+      comingSoon: true,
+      tag: "Modern",
+      price: "₹0",
+      originalPrice: "₹3,199",
+      discount: "50% off",
+      rating: 4.4,
+      reviews: 142
+    },
   ];
 
   const fabrics = [
@@ -1168,6 +1220,9 @@ function App() {
           Added to cart successfully! 🎉
         </Alert>
       </Snackbar>
+
+      {/* Chatbot - Only for customer view */}
+      <Chatbot />
 
     </div>
   );
