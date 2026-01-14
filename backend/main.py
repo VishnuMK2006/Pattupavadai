@@ -6,6 +6,11 @@ import uuid
 import shutil
 import httpx
 
+import bcrypt
+# Fix for passlib/bcrypt issue
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("bcrypt_about", (), {"__version__": bcrypt.__version__})
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +21,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import asyncio
 import traceback
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 
 load_dotenv()
@@ -76,6 +83,13 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    token: str  # ID Token from Google
+    email: EmailStr
+    name: str
+    picture: str = None
 
 
 class UserResponse(BaseModel):
@@ -213,7 +227,63 @@ async def login(payload: LoginRequest):
     token = issue_token()
     await users_col.update_one({"email": payload.email}, {"$set": {"token": token}})
     record["token"] = token
-    return {"user": serialize_user(record)}
+    return {"user": serialize_user( record)}
+
+
+@app.post("/auth/google", response_model=Dict[str, UserResponse])
+async def google_auth(payload: GoogleLoginRequest):
+    """
+    Handles Google Social Login with Server-side verification.
+    """
+    try:
+        # Verify the ID token with Google
+        # The 'token' in payload should be the credential string from GSI
+        google_client_id = os.environ.get("VITE_GOOGLE_CLIENT_ID")
+        id_info = id_token.verify_oauth2_token(
+            payload.token, 
+            google_requests.Request(), 
+            google_client_id,
+            clock_skew_in_seconds=300
+        )
+
+        # ID token is valid. Check info.
+        email = id_info['email']
+        name = id_info.get('name', 'Google User')
+        picture = id_info.get('picture')
+
+        # Check if user already exists
+        record = await get_user(email)
+        
+        token = issue_token()
+        
+        if not record:
+            # Create new user for first-time social login
+            user_doc = {
+                "email": email,
+                "name": name,
+                "shipping_address": "Not provided (Social Login)",
+                "contact_details": "Not provided (Social Login)",
+                "password_hash": "SOCIAL_AUTH", # No password for social login
+                "token": token,
+                "picture": picture,
+                "auth_provider": "google"
+            }
+            await users_col.insert_one(user_doc)
+            record = user_doc
+        else:
+            # Update existing user's token
+            await users_col.update_one({"email": email}, {"$set": {"token": token}})
+            record["token"] = token
+
+        return {"user": serialize_user(record)}
+        
+    except ValueError as e:
+        # Invalid token
+        print(f"Google Token Verification Failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except Exception as e:
+        print(f"Social Auth Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Authentication server error")
 
 
 # ---------------------------
@@ -229,35 +299,110 @@ async def analyze_dress(payload: AnalyzeRequest):
     if "," in image_data:
         image_data = image_data.split(",")[1]
 
-    # api_key = os.environ.get("OPENAI_API_KEY")
-    # if not api_key:
-    #     print("Error: OPENAI_API_KEY not found in environment")
-    #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("Error: OPENAI_API_KEY not found in environment")
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
 
-    # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    #api here
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     try:
         full_image_url = image_data if image_data.startswith("data:") else f"data:image/jpeg;base64,{image_data}"
 
         prompt = """
-Analyze the given clothing image (Pattupavadai/South Indian traditional wear) and extract the following attributes:
+Analyze the given clothing image of a South Indian traditional dress (Pattupavadai).
 
+Extract the following attributes strictly based on visual appearance. 
+If an attribute is not clearly visible, return null.
+
+Return the result strictly in valid JSON format.
+
+Attributes to extract:
+
+Dress Details:
 - dress_type (e.g., Pattupavadai, Langa Voni, Ethnic Frock)
-- sleeve_type (e.g., puff sleeves, half sleeves, sleeveless)
-- neck_design (e.g., round neck, square neck, sweetheart neck)
-- border_design (e.g., zari border, temple border, floral border)
-- color_palette (list dominant colors)
-- fabric_type (e.g., silk, cotton, organza)
+- traditional_style (e.g., South Indian, Festive wear)
+- occasion (e.g., festival, wedding, casual)
 
-Return the result strictly in this JSON format:
+Top (Blouse) Details:
+- top_color
+- top_secondary_color
+- top_pattern (plain, floral, embroidered, brocade)
+- sleeve_type (puff sleeves, half sleeves, sleeveless)
+- hand_puff (yes or no)
+- hand_puff_color (if hand_puff is yes)
+- neck_design (round neck, square neck, V neck, sweetheart neck)
+- neck_embellishment (zari, embroidery, beads, none)
 
+Bottom (Skirt / Pavadai) Details:
+- bottom_color
+- bottom_secondary_color
+- skirt_length (short, ankle-length, full-length)
+- skirt_flare (low, medium, high)
+- bottom_pattern
+- skirt_border_present (yes or no)
+- skirt_border_type (zari border, temple border, floral border)
+- skirt_border_pattern (temple motifs, floral, geometric)
+- skirt_border_color
+- skirt_border_width (thin, medium, broad)
+
+Fabric & Material:
+- fabric_type_top (silk, cotton, organza, mixed)
+- fabric_type_bottom
+- fabric_finish (matte, glossy, shimmer)
+
+Decorative Elements:
+- zari_work_present (yes or no)
+- embroidery_present (yes or no)
+- motif_type (peacock, floral, temple, abstract)
+
+Color Analysis:
+- color_palette (list of dominant colors)
+- contrast_style (high contrast or low contrast)
+
+
+Return output strictly in this JSON structure:
 {
-  "dress_type": "",
-  "sleeve_type": "",
-  "neck_design": "",
-  "border_design": "",
-  "color_palette": "",
-  "fabric_type": ""
+  "dress_details": {
+    "dress_type": "",
+    "traditional_style": "",
+    "occasion": ""
+  },
+  "top_details": {
+    "top_color": "",
+    "top_secondary_color": "",
+    "top_pattern": "",
+    "sleeve_type": "",
+    "hand_puff": "",
+    "hand_puff_color": "",
+    "neck_design": "",
+    "neck_embellishment": ""
+  },
+  "bottom_details": {
+    "bottom_color": "",
+    "bottom_secondary_color": "",
+    "skirt_length": "",
+    "skirt_flare": "",
+    "bottom_pattern": "",
+    "skirt_border_present": "",
+    "skirt_border_type": "",
+    "skirt_border_pattern": "",
+    "skirt_border_color": "",
+    "skirt_border_width": ""
+  },
+  "fabric_material": {
+    "fabric_type_top": "",
+    "fabric_type_bottom": "",
+    "fabric_finish": ""
+  },
+  "decorative_elements": {
+    "zari_work_present": "",
+    "embroidery_present": "",
+    "motif_type": ""
+  },
+  "color_analysis": {
+    "color_palette": [],
+    "contrast_style": ""
+  }
 }
 """
         response = client.chat.completions.create(
@@ -282,14 +427,13 @@ Return the result strictly in this JSON format:
 async def generate_preview_image(payload: PreviewRequest) -> Dict[str, str]:
     print(f"Incoming preview request for: {payload.user_email}")
     # Use the key from image_gen.py as fallback if env not set
-    # OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    # if not api_key:
-    #     print("Key nahi")
-    #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
-    #check1
-    # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    #api here
-    
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("Key nahi")
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+
+    client = OpenAI(api_key=api_key)
+
     prompt = f"""
     A high-quality, photorealistic fashion design illustration of a {payload.product_name}.
     Details:

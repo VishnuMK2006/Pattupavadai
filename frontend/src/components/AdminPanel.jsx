@@ -22,10 +22,10 @@ import {
     Container,
     Alert,
 } from '@mui/material';
-import { 
-    CloudUpload, 
-    AutoGraph, 
-    Logout, 
+import {
+    CloudUpload,
+    AutoGraph,
+    Logout,
     Dashboard as DashboardIcon,
     ShoppingBag,
     TrendingUp,
@@ -115,21 +115,21 @@ const AdminPanel = ({ onSignOut }) => {
     const handleOrderAnalysis = async (orderId, itemIndex, imageName) => {
         const imageUrl = `/images/orders/${orderId}_${itemIndex}.png`;
         console.log("Analyzing order image:", imageUrl);
-        
-        setTabValue(0); 
-        setResults(null); 
+
+        setTabValue(0);
+        setResults(null);
         setError(null);
-        setPreviewUrl(null); 
-        
+        setPreviewUrl(null);
+
         try {
             setAnalyzing(true);
             const response = await fetch(imageUrl);
-            
+
             if (!response.ok) {
                 console.error("Failed to fetch image from:", imageUrl);
                 throw new Error(`Image not found at ${imageUrl}. Please check if the file exists in frontend/public/images/orders/`);
             }
-            
+
             const blob = await response.blob();
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -148,10 +148,10 @@ const AdminPanel = ({ onSignOut }) => {
     return (
         <Box sx={{ bgcolor: '#F2F2F2', minHeight: '100vh', fontFamily: '"Inter", system-ui, -apple-system, sans-serif' }}>
             {/* Navigation Bar */}
-            <AppBar 
-                position="sticky" 
+            <AppBar
+                position="sticky"
                 elevation={1}
-                sx={{ 
+                sx={{
                     bgcolor: '#2874F0',
                     borderBottom: '1px solid rgba(0,0,0,0.1)',
                 }}
@@ -159,10 +159,10 @@ const AdminPanel = ({ onSignOut }) => {
                 <Container maxWidth="xl">
                     <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Box sx={{ 
-                                width: 40, 
-                                height: 40, 
-                                borderRadius: 2, 
+                            <Box sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 2,
                                 bgcolor: '#FFFFFF',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -171,17 +171,17 @@ const AdminPanel = ({ onSignOut }) => {
                                 <DashboardIcon sx={{ color: '#2874F0', fontSize: 24 }} />
                             </Box>
                             <Box>
-                                <Typography sx={{ 
-                                    color: '#FFFFFF', 
-                                    fontSize: '20px', 
+                                <Typography sx={{
+                                    color: '#FFFFFF',
+                                    fontSize: '20px',
                                     fontWeight: 700,
                                     letterSpacing: '-0.5px',
                                     fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
                                 }}>
                                     Kuzhavi_kids
                                 </Typography>
-                                <Typography sx={{ 
-                                    color: 'rgba(255,255,255,0.8)', 
+                                <Typography sx={{
+                                    color: 'rgba(255,255,255,0.8)',
                                     fontSize: '12px',
                                     fontWeight: 500,
                                     fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
@@ -203,7 +203,7 @@ const AdminPanel = ({ onSignOut }) => {
                                 py: 1,
                                 borderRadius: 2,
                                 border: '1px solid rgba(255,255,255,0.2)',
-                                '&:hover': { 
+                                '&:hover': {
                                     bgcolor: 'rgba(255,255,255,0.1)',
                                     borderColor: 'rgba(255,255,255,0.3)',
                                 }
@@ -218,9 +218,9 @@ const AdminPanel = ({ onSignOut }) => {
             <Container maxWidth="xl" sx={{ py: 4 }}>
 
                 {/* Tabs */}
-                <Paper 
+                <Paper
                     elevation={0}
-                    sx={{ 
+                    sx={{
                         mb: 3,
                         bgcolor: '#ffffff',
                         border: '1px solid #e8eaed',
@@ -228,13 +228,13 @@ const AdminPanel = ({ onSignOut }) => {
                         overflow: 'hidden',
                     }}
                 >
-                    <Tabs 
-                        value={tabValue} 
-                        onChange={(e, v) => setTabValue(v)} 
-                        sx={{ 
+                    <Tabs
+                        value={tabValue}
+                        onChange={(e, v) => setTabValue(v)}
+                        sx={{
                             px: 2,
-                            '& .MuiTab-root': { 
-                                color: '#6c757d', 
+                            '& .MuiTab-root': {
+                                color: '#6c757d',
                                 fontWeight: 600,
                                 textTransform: 'none',
                                 fontSize: '15px',
@@ -242,8 +242,8 @@ const AdminPanel = ({ onSignOut }) => {
                                 px: 3,
                             },
                             '& .Mui-selected': { color: '#2874F0 !important' },
-                            '& .MuiTabs-indicator': { 
-                                backgroundColor: '#2874F0', 
+                            '& .MuiTabs-indicator': {
+                                backgroundColor: '#2874F0',
                                 height: 3,
                                 borderRadius: '3px 3px 0 0',
                             }
@@ -255,49 +255,51 @@ const AdminPanel = ({ onSignOut }) => {
                 </Paper>
 
                 {tabValue === 0 && (
-                    <Grid container spacing={3} justifyContent="center">
-                        {/* Upload Section */}
-                        <Grid item xs={12} lg={5}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 4, alignItems: 'flex-start' }}>
+                        {/* Left Side: Upload & Preview (Fixed/Sticky) */}
+                        <Box sx={{
+                            width: { xs: '100%', sm: '380px', md: '450px' },
+                            position: { sm: 'sticky' },
+                            top: 24,
+                            flexShrink: 0
+                        }}>
                             <Paper
                                 elevation={0}
                                 sx={{
-                                    p: 4,
+                                    p: 3,
                                     bgcolor: '#ffffff',
                                     border: '1px solid #e8eaed',
                                     borderRadius: 3,
-                                    height: '100%',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    mx: 'auto',
-                                    maxWidth: 600,
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
                                 }}
                             >
-                                <Typography sx={{ 
-                                    fontSize: '20px', 
-                                    fontWeight: 700, 
-                                    color: '#1a1a1a', 
-                                    mb: 3,
-                                    letterSpacing: '-0.5px',
+                                <Typography sx={{
+                                    fontSize: '18px',
+                                    fontWeight: 700,
+                                    color: '#1a1a1a',
+                                    mb: 2.5,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
                                 }}>
-                                    Upload Image
+                                    <CloudUpload sx={{ color: '#2874F0' }} />
+                                    Image Source
                                 </Typography>
 
                                 <Box
                                     sx={{
-                                        flex: 1,
+                                        border: '2px dashed #d0d5dd',
+                                        borderRadius: 2,
+                                        bgcolor: '#f8f9fa',
+                                        minHeight: 280,
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
                                         alignItems: 'center',
-                                        border: '2px dashed #d0d5dd',
-                                        borderRadius: 3,
-                                        bgcolor: '#f5f7fa',
-                                        minHeight: 400,
-                                        transition: 'all 0.3s ease',
-                                        '&:hover': { 
-                                            bgcolor: '#ffffff',
-                                            borderColor: '#2874F0',
-                                        }
+                                        transition: 'all 0.2s ease',
+                                        overflow: 'hidden',
+                                        position: 'relative',
+                                        '&:hover': { bgcolor: '#ffffff', borderColor: '#2874F0' }
                                     }}
                                 >
                                     <input
@@ -309,76 +311,43 @@ const AdminPanel = ({ onSignOut }) => {
                                     />
                                     {!previewUrl ? (
                                         <label htmlFor="dress-upload" style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <Box sx={{ textAlign: 'center', p: 4 }}>
-                                                <Box sx={{ 
-                                                    width: 80, 
-                                                    height: 80, 
-                                                    borderRadius: 3,
-                                                    bgcolor: '#e3f2fd',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    margin: '0 auto',
-                                                    mb: 3,
-                                                }}>
-                                                    <ImageIcon sx={{ fontSize: 40, color: '#2874F0' }} />
-                                                </Box>
-                                                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                                                    Click to upload or drag and drop
+                                            <Box sx={{ textAlign: 'center', p: 3 }}>
+                                                <ImageIcon sx={{ fontSize: 40, color: '#d0d5dd', mb: 1 }} />
+                                                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#666' }}>
+                                                    Click to Choose Image
                                                 </Typography>
-                                                <Typography sx={{ fontSize: '13px', color: '#6c757d', mb: 3 }}>
-                                                    SVG, PNG, JPG or GIF (MAX. 10MB)
-                                                </Typography>
-                                                <Button
-                                                    variant="contained"
-                                                    component="span"
-                                                    startIcon={<CloudUpload />}
-                                                    sx={{
-                                                        bgcolor: '#2874F0',
-                                                        color: '#ffffff',
-                                                        py: 1.5,
-                                                        px: 4,
-                                                        borderRadius: 2,
-                                                        fontWeight: 600,
-                                                        fontSize: '14px',
-                                                        textTransform: 'none',
-                                                        boxShadow: 'none',
-                                                        '&:hover': { 
-                                                            bgcolor: '#1565c0',
-                                                            boxShadow: '0 4px 12px rgba(40,116,240,0.3)',
-                                                        }
-                                                    }}
-                                                >
-                                                    Choose File
-                                                </Button>
                                             </Box>
                                         </label>
                                     ) : (
-                                        <Box sx={{ p: 3, width: '100%', textAlign: 'center' }}>
+                                        <Box sx={{ p: 1, width: '100%', height: '100%', position: 'relative' }}>
                                             <img
                                                 src={previewUrl}
                                                 alt="Preview"
                                                 style={{
-                                                    maxWidth: '100%',
-                                                    maxHeight: '350px',
-                                                    borderRadius: '12px',
+                                                    width: '100%',
+                                                    height: '280px',
+                                                    borderRadius: '6px',
                                                     objectFit: 'contain',
                                                 }}
                                             />
                                             <label htmlFor="dress-upload">
-                                                <Button
-                                                    component="span"
-                                                    size="small"
-                                                    sx={{ 
-                                                        color: '#2874F0', 
-                                                        mt: 2, 
-                                                        textTransform: 'none', 
-                                                        fontWeight: 600,
-                                                        fontSize: '14px',
-                                                    }}
-                                                >
-                                                    Change Image
-                                                </Button>
+                                                <Box sx={{
+                                                    position: 'absolute',
+                                                    bottom: 8,
+                                                    right: 8,
+                                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                                    borderRadius: 1,
+                                                    px: 1,
+                                                    py: 0.5,
+                                                    cursor: 'pointer',
+                                                    border: '1px solid #ddd',
+                                                    fontSize: '11px',
+                                                    fontWeight: 600,
+                                                    color: '#2874F0',
+                                                    '&:hover': { bgcolor: '#fff' }
+                                                }}>
+                                                    Replace
+                                                </Box>
                                             </label>
                                         </Box>
                                     )}
@@ -390,41 +359,32 @@ const AdminPanel = ({ onSignOut }) => {
                                         variant="contained"
                                         onClick={() => handleAnalyze()}
                                         disabled={analyzing}
-                                        startIcon={analyzing ? <CircularProgress size={20} sx={{ color: '#ffffff' }} /> : <AutoGraph />}
+                                        startIcon={analyzing ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <AutoGraph />}
                                         sx={{
                                             mt: 3,
                                             py: 1.5,
-                                            borderRadius: 2,
                                             bgcolor: '#2874F0',
-                                            color: '#ffffff',
-                                            fontWeight: 600,
-                                            fontSize: '15px',
+                                            borderRadius: 2,
+                                            fontWeight: 700,
                                             textTransform: 'none',
-                                            boxShadow: 'none',
-                                            '&:hover': { 
-                                                bgcolor: '#1565c0',
-                                                boxShadow: '0 4px 12px rgba(40,116,240,0.3)',
-                                            },
-                                            '&:disabled': {
-                                                bgcolor: '#e8eaed',
-                                                color: '#6c757d',
-                                            }
+                                            boxShadow: '0 4px 12px rgba(40,116,240,0.2)',
+                                            '&:hover': { bgcolor: '#1565c0' }
                                         }}
                                     >
-                                        {analyzing ? 'Analyzing...' : 'Analyze Dress Features'}
+                                        {analyzing ? 'Analyzing...' : 'Start Analysis'}
                                     </Button>
                                 )}
 
                                 {error && (
-                                    <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+                                    <Alert severity="error" sx={{ mt: 2, fontSize: '12px' }}>
                                         {error}
                                     </Alert>
                                 )}
                             </Paper>
-                        </Grid>
+                        </Box>
 
-                        {/* Results Section */}
-                        <Grid item xs={12} lg={7}>
+                        {/* Right Side: Results (Main Area) */}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
                             {results ? (
                                 <Paper
                                     elevation={0}
@@ -433,113 +393,105 @@ const AdminPanel = ({ onSignOut }) => {
                                         bgcolor: '#ffffff',
                                         border: '1px solid #e8eaed',
                                         borderRadius: 3,
-                                        height: '100%',
+                                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
                                     }}
                                 >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                                        <Typography sx={{ 
-                                            fontSize: '20px', 
-                                            fontWeight: 700, 
-                                            color: '#1a1a1a',
-                                            letterSpacing: '-0.5px',
-                                        }}>
-                                            Analysis Results
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, borderBottom: '1px solid #f0f0f0', pb: 2 }}>
+                                        <Typography sx={{ fontSize: '22px', fontWeight: 800, color: '#1a1a1a' }}>
+                                            AI Fashion Report
                                         </Typography>
-                                        <Chip 
-                                            label="Completed" 
-                                            icon={<CheckCircle />}
-                                            sx={{ 
-                                                bgcolor: '#e8f5e9',
-                                                color: '#4CAF50',
-                                                fontWeight: 600,
-                                                fontSize: '13px',
-                                                height: 32,
-                                                '& .MuiChip-icon': {
-                                                    color: '#4CAF50',
-                                                    fontSize: 18,
-                                                }
-                                            }} 
+                                        <Chip
+                                            label="Analysis Complete"
+                                            size="small"
+                                            sx={{ bgcolor: '#f0f4ff', color: '#2874F0', fontWeight: 700 }}
                                         />
                                     </Box>
 
-                                    <Grid container spacing={2}>
-                                        {Object.entries(results).map(([key, value]) => (
-                                            <Grid item xs={12} sm={6} key={key}>
-                                                <Box 
-                                                    sx={{
-                                                        p: 2.5,
-                                                        bgcolor: '#f5f7fa',
-                                                        borderRadius: 2,
-                                                        border: '1px solid #e8eaed',
-                                                        height: '100%',
-                                                    }}
-                                                >
-                                                    <Typography sx={{ 
-                                                        fontSize: '11px', 
-                                                        textTransform: 'uppercase', 
+                                    <Stack spacing={4}>
+                                        {Object.entries(results).map(([category, items]) => {
+                                            if (typeof items !== 'object' || items === null) return null;
+
+                                            return (
+                                                <Box key={category}>
+                                                    <Typography sx={{
+                                                        fontSize: '12px',
+                                                        fontWeight: 800,
+                                                        color: '#2874F0',
+                                                        textTransform: 'uppercase',
                                                         letterSpacing: '1px',
-                                                        color: '#6c757d', 
-                                                        fontWeight: 700,
-                                                        mb: 1,
+                                                        mb: 2,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        '&::after': {
+                                                            content: '""',
+                                                            flex: 1,
+                                                            height: '1px',
+                                                            bgcolor: '#e0e0e0',
+                                                            ml: 2
+                                                        }
                                                     }}>
-                                                        {key.replace(/_/g, ' ')}
+                                                        {category.replace(/_/g, ' ')}
                                                     </Typography>
-                                                    <Typography sx={{ 
-                                                        fontSize: '15px', 
-                                                        fontWeight: 600, 
-                                                        color: '#1a1a1a',
-                                                        wordBreak: 'break-word',
-                                                    }}>
-                                                        {value || 'N/A'}
-                                                    </Typography>
+
+                                                    <Grid container spacing={2}>
+                                                        {Object.entries(items).map(([key, value]) => (
+                                                            <Grid item xs={12} md={6} key={key}>
+                                                                <Box sx={{
+                                                                    p: 2,
+                                                                    borderRadius: 2,
+                                                                    bgcolor: '#fcfcfc',
+                                                                    border: '1px solid #f0f0f0'
+                                                                }}>
+                                                                    <Typography sx={{ fontSize: '10px', color: '#888', fontWeight: 700, textTransform: 'uppercase', mb: 0.5 }}>
+                                                                        {key.replace(/_/g, ' ')}
+                                                                    </Typography>
+                                                                    <Typography sx={{ fontSize: '14px', color: '#333', fontWeight: 600 }}>
+                                                                        {Array.isArray(value) ? value.join(', ') : (value?.toString() || 'N/A')}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Grid>
+                                                        ))}
+                                                    </Grid>
                                                 </Box>
-                                            </Grid>
-                                        ))}
-                                    </Grid>
+                                            );
+                                        })}
+                                    </Stack>
                                 </Paper>
                             ) : (
                                 <Paper
                                     elevation={0}
                                     sx={{
-                                        p: 6,
+                                        p: 8,
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        minHeight: 500,
-                                        bgcolor: '#f5f7fa',
-                                        border: '2px dashed #d0d5dd',
+                                        minHeight: 480,
+                                        bgcolor: '#ffffff',
+                                        border: '1px solid #e8eaed',
                                         borderRadius: 3,
+                                        textAlign: 'center'
                                     }}
                                 >
-                                    <Box sx={{ 
-                                        width: 80, 
-                                        height: 80, 
-                                        borderRadius: 3,
-                                        bgcolor: '#ffffff',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        mb: 3,
-                                    }}>
-                                        <AutoGraph sx={{ fontSize: 40, color: '#9C27B0' }} />
+                                    <Box sx={{ mb: 3, color: '#d0d5dd' }}>
+                                        <AutoGraph sx={{ fontSize: 60 }} />
                                     </Box>
-                                    <Typography sx={{ fontSize: '18px', fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                                        No Analysis Yet
+                                    <Typography variant="h6" sx={{ color: '#1a1a1a', fontWeight: 700, mb: 1 }}>
+                                        Ready for Analysis
                                     </Typography>
-                                    <Typography sx={{ fontSize: '14px', textAlign: 'center', maxWidth: 360, color: '#6c757d' }}>
-                                        Upload an image and click analyze to see detailed dress feature extraction results here
+                                    <Typography sx={{ color: '#666', maxWidth: 400 }}>
+                                        Upload an image on the left and start the AI session to extract professional dress attributes.
                                     </Typography>
                                 </Paper>
                             )}
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 )}
 
                 {tabValue === 1 && (
-                    <Paper 
+                    <Paper
                         elevation={0}
-                        sx={{ 
+                        sx={{
                             bgcolor: '#ffffff',
                             border: '1px solid #e8eaed',
                             borderRadius: 3,
@@ -582,9 +534,9 @@ const AdminPanel = ({ onSignOut }) => {
                                         </TableRow>
                                     ) : (
                                         orders.map((order, orderIndex) => (
-                                            <TableRow 
-                                                key={order._id} 
-                                                sx={{ 
+                                            <TableRow
+                                                key={order._id}
+                                                sx={{
                                                     '&:hover': { bgcolor: '#f5f7fa' },
                                                     borderBottom: orderIndex === orders.length - 1 ? 'none' : '1px solid #e8eaed',
                                                 }}
@@ -605,9 +557,9 @@ const AdminPanel = ({ onSignOut }) => {
                                                 <TableCell>
                                                     <Stack spacing={2}>
                                                         {order.items.map((item, idx) => (
-                                                            <Box 
-                                                                key={idx} 
-                                                                sx={{ 
+                                                            <Box
+                                                                key={idx}
+                                                                sx={{
                                                                     p: 2,
                                                                     bgcolor: '#f5f7fa',
                                                                     borderRadius: 2,
@@ -677,7 +629,7 @@ const AdminPanel = ({ onSignOut }) => {
                                                                     px: 2,
                                                                     py: 1,
                                                                     boxShadow: 'none',
-                                                                    '&:hover': { 
+                                                                    '&:hover': {
                                                                         bgcolor: '#1565c0',
                                                                         boxShadow: 'none',
                                                                     },
