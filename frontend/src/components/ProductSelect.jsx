@@ -13,7 +13,7 @@ const defaultProducts = [
     name: "Pattu Paavadai",
     blurb: "Handwoven silk skirt set crafted for festive shine.",
     tag: "Traditional",
-    price: "₹1,999",
+    price: "₹1,500",
     originalPrice: "₹3,999",
     discount: "50% off",
     rating: 4.5,
