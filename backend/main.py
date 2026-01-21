@@ -47,14 +47,7 @@ allowed_origins = _configured_origins or _default_frontend_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=["*"], # Allow all for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -208,6 +201,7 @@ async def signup(payload: SignupRequest):
 
 @app.post("/auth/login", response_model=Dict[str, UserResponse])
 async def login(payload: LoginRequest):
+    print(f"Login attempt: {payload.email}")
     # Hardcoded admin check
     if payload.email == "admin@gmail.com" and payload.password == "admin123@":
         token = issue_token()
@@ -232,13 +226,11 @@ async def login(payload: LoginRequest):
 
 @app.post("/auth/google", response_model=Dict[str, UserResponse])
 async def google_auth(payload: GoogleLoginRequest):
-    """
-    Handles Google Social Login with Server-side verification.
-    """
+    print(f"Google Auth attempt for email: {payload.email}")
     try:
-        # Verify the ID token with Google
-        # The 'token' in payload should be the credential string from GSI
         google_client_id = os.environ.get("VITE_GOOGLE_CLIENT_ID")
+        if not google_client_id:
+            print("CRITICAL: VITE_GOOGLE_CLIENT_ID not found in backend environment")
         id_info = id_token.verify_oauth2_token(
             payload.token, 
             google_requests.Request(), 
@@ -291,7 +283,7 @@ async def google_auth(payload: GoogleLoginRequest):
 # ---------------------------
 @app.post("/analyze-dress")
 async def analyze_dress(payload: AnalyzeRequest):
-    print("Received analyze-dress request")
+    print(f"--- STARTING DRESS ANALYSIS ---")
     image_data = payload.image
     if not image_data:
         raise HTTPException(status_code=400, detail="No image data provided")
@@ -306,7 +298,14 @@ async def analyze_dress(payload: AnalyzeRequest):
     #api here
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     try:
-        full_image_url = image_data if image_data.startswith("data:") else f"data:image/jpeg;base64,{image_data}"
+        # Detect image format from base64 header if possible
+        mime_type = "image/jpeg"
+        if payload.image.startswith("data:"):
+            header = payload.image.split(";")[0]
+            mime_type = header.split(":")[1]
+        
+        full_image_url = payload.image if payload.image.startswith("data:") else f"data:{mime_type};base64,{image_data}"
+        print(f"Analyzing image with MIME type: {mime_type}")
 
         prompt = """
 Analyze the given clothing image of a South Indian traditional dress (Pattupavadai).
@@ -415,8 +414,10 @@ Return output strictly in this JSON structure:
                 ]},
             ],
             temperature=0,
+            max_tokens=2000,
             response_format={"type": "json_object"}
         )
+        print("Analysis completed successfully")
         return {"analysis": response.choices[0].message.content}
     except Exception as e:
         print(f"Error in analyze_dress: {e}")
@@ -544,25 +545,40 @@ class ChatbotQueryRequest(BaseModel):
 @app.post("/chatbot/query")
 async def chatbot_query(request: ChatbotQueryRequest):
     """
-    Proxy endpoint for chatbot queries to external RAG API
+    Kuzhavi Kids Designer Guide - AI Response System
     """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return {"response": "I'm currently in offline mode. Please contact support at 1800-123-4567."}
+
+    client = OpenAI(api_key=api_key)
+    
+    system_prompt = """
+    You are the 'Kuzhavi Designer Guide', an expert in South Indian traditional kids' ethnic wear (Pattupavadai, Langa Voni, Kurta Sets).
+    Your tone is warm, professional, and helpful. You represent Kuzhavi Kids boutique.
+    
+    Your knowledge covers:
+    1. Fabrics: Banarasi Silk, Tissue Silk, Kalamkari, Organza, Cotton.
+    2. Styles: Pattu Pavadai, Ethnic Frocks, Traditional Gowns.
+    3. Customization: Sleeve types (puff, short), Necklines (round, square, boat), and Border designs.
+    4. Policies: 10-day return policy, free shipping, Cash on Delivery available.
+    5. Delivery: 3-5 business days for standard, 1-2 days for express.
+    
+    If asked something unrelated to fashion or Kuzhavi Kids, politely redirect them.
+    Keep responses concise and helpful.
+    """
+
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "https://rag-medical.onrender.com/query",
-                json={"query": request.query},
-                headers={"Content-Type": "application/json"}
-            )
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Failed to get response from chatbot service"
-                )
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Chatbot service timeout")
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": request.query}
+            ],
+            max_tokens=500
+        )
+        return {"response": response.choices[0].message.content}
     except Exception as e:
-        print(f"Chatbot query error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Chatbot service error: {str(e)}")
+        print(f"Chatbot error: {str(e)}")
+        # Fallback to a polite message if OpenAI fails
+        return {"response": "I'm having a bit of trouble thinking right now. Could you please try again in a moment?"}

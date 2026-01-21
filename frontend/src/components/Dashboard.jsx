@@ -10,6 +10,7 @@ import {
   Divider,
   Chip,
   Grid,
+  Stack,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -17,9 +18,15 @@ import {
   LocalShipping,
   Star,
   ArrowBack,
-  Download,
-  Help,
 } from '@mui/icons-material';
+
+const luxuryColors = {
+  maroon: '#4C0013',
+  gold: '#B38B00',
+  ivory: '#FFFDF5',
+  text: '#2A000A',
+  goldLight: '#D4AF37'
+};
 
 function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false);
@@ -29,8 +36,8 @@ function OrderCard({ order }) {
   deliveryDate.setDate(deliveryDate.getDate() + 3);
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-IN', { 
-      day: 'numeric', 
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
       month: 'short',
       year: 'numeric'
     });
@@ -40,294 +47,167 @@ function OrderCard({ order }) {
     <Paper
       elevation={0}
       sx={{
-        mb: 2,
+        mb: 3,
         bgcolor: '#FFFFFF',
-        border: '1px solid #E0E0E0',
-        borderRadius: 1,
+        border: '1px solid rgba(0,0,0,0.05)',
+        borderRadius: '24px',
         overflow: 'hidden',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.02)'
       }}
     >
       {/* Order Header */}
-      <Box sx={{ 
-        bgcolor: '#F2F2F2', 
-        p: 2,
+      <Box sx={{
+        bgcolor: luxuryColors.ivory,
+        p: 3,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '1px solid #E0E0E0',
+        borderBottom: '1px solid rgba(0,0,0,0.05)',
       }}>
-        <Box sx={{ display: 'flex', gap: 4, flex: 1 }}>
+        <Box sx={{ display: 'flex', gap: 6, flex: 1 }}>
           <Box>
-            <Typography sx={{ fontSize: '11px', color: '#666666', mb: 0.5 }}>
+            <Typography sx={{ fontSize: '11px', color: 'rgba(0,0,0,0.5)', mb: 0.5, letterSpacing: '1px', fontWeight: 800 }}>
               ORDER PLACED
             </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#111111', fontWeight: 600 }}>
+            <Typography sx={{ fontSize: '14px', color: luxuryColors.text, fontWeight: 700 }}>
               {formatDate(order.order_date)}
             </Typography>
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '11px', color: '#666666', mb: 0.5 }}>
+            <Typography sx={{ fontSize: '11px', color: 'rgba(0,0,0,0.5)', mb: 0.5, letterSpacing: '1px', fontWeight: 800 }}>
               TOTAL
             </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#111111', fontWeight: 600 }}>
+            <Typography sx={{ fontSize: '14px', color: luxuryColors.text, fontWeight: 700 }}>
               ₹{order.total_amount.toLocaleString()}
             </Typography>
           </Box>
-          <Box>
-            <Typography sx={{ fontSize: '11px', color: '#666666', mb: 0.5 }}>
-              SHIP TO
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Typography sx={{ fontSize: '11px', color: 'rgba(0,0,0,0.5)', mb: 0.5, letterSpacing: '1px', fontWeight: 800 }}>
+              RECIPIENT
             </Typography>
-            <Typography sx={{ fontSize: '13px', color: '#2874F0', fontWeight: 600 }}>
-              {order.user_email.split('@')[0]} ▾
+            <Typography sx={{ fontSize: '14px', color: luxuryColors.maroon, fontWeight: 700 }}>
+              {order.user_email.split('@')[0].toUpperCase()}
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Typography sx={{ fontSize: '11px', color: '#666666' }}>
-            ORDER # {order._id.substring(0, 12).toUpperCase()}
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography sx={{ fontSize: '11px', color: 'rgba(0,0,0,0.4)', mb: 1 }}>
+            ID: {order._id.substring(0, 12).toUpperCase()}
           </Typography>
-          <Button
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '12px',
-              color: '#2874F0',
-              minWidth: 'auto',
-              p: 0.5,
-              '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
-            }}
-          >
-            View Order Details
-          </Button>
-          <Button
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '12px',
-              color: '#2874F0',
-              minWidth: 'auto',
-              p: 0.5,
-              '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
-            }}
-          >
-            Invoice
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button size="small" sx={{ textTransform: 'none', color: luxuryColors.maroon, fontWeight: 700 }}>Invoice</Button>
+            <Button size="small" sx={{ textTransform: 'none', color: luxuryColors.maroon, fontWeight: 700 }}>Details</Button>
+          </Stack>
         </Box>
       </Box>
 
       {/* Order Items */}
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 3 }}>
         {order.items.map((item, index) => (
-          <Box key={index} sx={{ mb: index < order.items.length - 1 ? 3 : 0 }}>
+          <Box key={index} sx={{ mb: index < order.items.length - 1 ? 4 : 0 }}>
             {/* Delivery Status */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
               <Chip
                 icon={<LocalShipping sx={{ fontSize: 16, color: '#2ecc71' }} />}
                 label={`Delivered ${formatDate(deliveryDate)}`}
                 sx={{
-                  bgcolor: '#E8F5E9',
+                  bgcolor: 'rgba(46, 204, 113, 0.1)',
                   color: '#2ecc71',
-                  fontSize: '13px',
-                  fontWeight: 600,
+                  fontSize: '12px',
+                  fontWeight: 800,
                   height: 28,
-                  '& .MuiChip-icon': {
-                    ml: 0.5,
-                  }
                 }}
               />
             </Box>
 
             {/* Product Details */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 3 }}>
               <Box
                 component="img"
                 src={`/images/orders/${order._id}_${index}.png`}
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = "https://placehold.co/150x150?text=Product";
+                  e.target.src = "https://placehold.co/300x300?text=Heirloom+Piece";
                 }}
                 sx={{
-                  width: 140,
-                  height: 140,
-                  borderRadius: 1,
+                  width: 120,
+                  height: 120,
+                  borderRadius: '16px',
                   objectFit: 'cover',
-                  border: '1px solid #E0E0E0',
-                  bgcolor: '#F2F2F2',
+                  border: '1px solid #F0F0F0',
+                  bgcolor: luxuryColors.ivory,
                 }}
               />
-              
+
               <Box sx={{ flex: 1 }}>
-                <Typography 
-                  sx={{ 
-                    fontSize: '14px', 
-                    color: '#2874F0',
-                    fontWeight: 600,
-                    mb: 0.5,
-                    cursor: 'pointer',
-                    '&:hover': { color: '#FF9900', textDecoration: 'underline' }
+                <Typography
+                  sx={{
+                    fontSize: '18px',
+                    color: luxuryColors.text,
+                    fontWeight: 800,
+                    fontFamily: '"Playfair Display", serif',
+                    mb: 1,
                   }}
                 >
                   {item.product_name}
                 </Typography>
-                <Typography sx={{ fontSize: '13px', color: '#666666', mb: 1 }}>
-                  Fabric: {item.fabric_type}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1.5 }}>
-                  <Typography sx={{ fontSize: '12px', color: '#111111' }}>
-                    <strong>Dress Type:</strong> {item.dress_type}
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', color: '#111111' }}>
-                    <strong>Sleeve:</strong> {item.sleeve_type}
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', color: '#111111' }}>
-                    <strong>Neck:</strong> {item.neck_design}
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', color: '#111111' }}>
-                    <strong>Border:</strong> {item.border_design}
-                  </Typography>
-                </Box>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={6} md={3}>
+                    <Typography sx={{ fontSize: '11px', color: '#AAA' }}>FABRIC</Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{item.fabric_type}</Typography>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Typography sx={{ fontSize: '11px', color: '#AAA' }}>DRESS</Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{item.dress_type}</Typography>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Typography sx={{ fontSize: '11px', color: '#AAA' }}>SLEEVE</Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{item.sleeve_type}</Typography>
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <Typography sx={{ fontSize: '11px', color: '#AAA' }}>NECK</Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{item.neck_design}</Typography>
+                  </Grid>
+                </Grid>
 
-                {/* Action Buttons */}
-                <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+                <Stack direction="row" spacing={2}>
                   <Button
                     variant="contained"
-                    size="small"
                     sx={{
-                      bgcolor: '#FF9900',
-                      color: '#111111',
+                      bgcolor: luxuryColors.maroon,
+                      color: 'white',
                       textTransform: 'none',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      px: 2,
-                      py: 0.75,
-                      borderRadius: 20,
-                      boxShadow: 'none',
-                      '&:hover': {
-                        bgcolor: '#FFCE00',
-                        boxShadow: 'none',
-                      }
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      px: 3,
+                      borderRadius: '50px',
+                      '&:hover': { bgcolor: luxuryColors.dark }
                     }}
                   >
-                    Buy it again
+                    Order Again
                   </Button>
                   <Button
                     variant="outlined"
-                    size="small"
-                    sx={{
-                      borderColor: '#CCCCCC',
-                      color: '#111111',
-                      textTransform: 'none',
-                      fontSize: '13px',
-                      px: 2,
-                      py: 0.75,
-                      borderRadius: 20,
-                      '&:hover': {
-                        borderColor: '#999999',
-                        bgcolor: '#F2F2F2',
-                      }
-                    }}
-                  >
-                    View your item
-                  </Button>
-                  <Button
-                    size="small"
                     startIcon={<Star sx={{ fontSize: 16 }} />}
                     sx={{
-                      color: '#2874F0',
+                      borderColor: '#DDD',
+                      color: luxuryColors.text,
                       textTransform: 'none',
-                      fontSize: '13px',
-                      px: 1.5,
-                      '&:hover': {
-                        bgcolor: 'transparent',
-                        textDecoration: 'underline',
-                      }
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      px: 3,
+                      borderRadius: '50px',
                     }}
                   >
-                    Write a product review
+                    Write Review
                   </Button>
-                </Box>
+                </Stack>
               </Box>
             </Box>
 
-            {index < order.items.length - 1 && (
-              <Divider sx={{ mt: 3 }} />
-            )}
+            {index < order.items.length - 1 && <Divider sx={{ mt: 4 }} />}
           </Box>
         ))}
-
-        {/* Order Summary Toggle */}
-        {order.items.length > 0 && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Box
-              onClick={() => setExpanded(!expanded)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                py: 1,
-                '&:hover': {
-                  bgcolor: '#F2F2F2',
-                }
-              }}
-            >
-              <Typography sx={{ fontSize: '13px', color: '#2874F0', fontWeight: 600 }}>
-                Order Summary
-              </Typography>
-              <IconButton size="small" sx={{ color: '#2874F0' }}>
-                {expanded ? <ExpandLess /> : <ExpandMore />}
-              </IconButton>
-            </Box>
-            
-            <Collapse in={expanded}>
-              <Box sx={{ bgcolor: '#F2F2F2', p: 2, borderRadius: 1, mt: 1 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography sx={{ fontSize: '12px', color: '#666666', mb: 0.5 }}>
-                      Order Total:
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 600 }}>
-                      ₹{order.total_amount.toLocaleString()}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography sx={{ fontSize: '12px', color: '#666666', mb: 0.5 }}>
-                      Payment Method:
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 600 }}>
-                      UPI
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography sx={{ fontSize: '12px', color: '#666666', mb: 0.5 }}>
-                      Items:
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 600 }}>
-                      {order.items.length}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography sx={{ fontSize: '12px', color: '#666666', mb: 0.5 }}>
-                      Status:
-                    </Typography>
-                    <Chip 
-                      label="Delivered" 
-                      size="small" 
-                      sx={{ 
-                        bgcolor: '#E8F5E9', 
-                        color: '#2ecc71',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        height: 24,
-                      }} 
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Collapse>
-          </>
-        )}
       </Box>
     </Paper>
   );
@@ -353,134 +233,65 @@ export default function Dashboard({ user, onBack }) {
   }, [user]);
 
   return (
-    <Box sx={{ bgcolor: '#F2F2F2', minHeight: '100vh', pb: 4 }}>
+    <Box sx={{ bgcolor: luxuryColors.ivory, minHeight: '100vh', pb: 10 }}>
       {/* Header */}
-      <Box sx={{ 
-        bgcolor: '#FFFFFF', 
-        borderBottom: '1px solid #E0E0E0',
+      <Box sx={{
+        bgcolor: '#FFFFFF',
+        borderBottom: '1px solid rgba(0,0,0,0.05)',
         position: 'sticky',
-        top: 0,
+        top: 80,
         zIndex: 10,
       }}>
-        <Box sx={{ 
-          maxWidth: 1200, 
-          margin: '0 auto', 
+        <Box sx={{
+          maxWidth: 1000,
+          margin: '0 auto',
           px: 3,
-          py: 2,
+          py: 4,
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'baseline',
         }}>
-          <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#111111' }}>
-            Your Orders
+          <Typography variant="h3" sx={{ fontWeight: 800, color: luxuryColors.maroon, fontFamily: '"Playfair Display", serif' }}>
+            My Orders
           </Typography>
-          <Button 
-            startIcon={<ArrowBack />} 
+          <Button
+            startIcon={<ArrowBack />}
             onClick={onBack}
-            sx={{ 
-              color: '#666666',
-              textTransform: 'none',
-              fontSize: '14px',
-              fontWeight: 600,
-              '&:hover': { 
-                color: '#2874F0',
-                bgcolor: 'transparent',
-              }
+            sx={{
+              color: luxuryColors.text,
+              textTransform: 'uppercase',
+              fontSize: '12px',
+              fontWeight: 800,
+              letterSpacing: '2px',
             }}
           >
-            Back to Shop
+            Store
           </Button>
         </Box>
       </Box>
 
       {/* Content */}
-      <Box sx={{ maxWidth: 1200, margin: '0 auto', px: 3, py: 3 }}>
-        {/* Filter Bar */}
-        <Paper
-          elevation={0}
-          sx={{
-            mb: 2,
-            bgcolor: '#FFFFFF',
-            border: '1px solid #E0E0E0',
-            borderRadius: 1,
-            p: 2,
-            display: 'flex',
-            gap: 2,
-            alignItems: 'center',
-          }}
-        >
-          <Typography sx={{ fontSize: '13px', color: '#111111', fontWeight: 600 }}>
-            {orders.length} order{orders.length !== 1 ? 's' : ''} placed
-          </Typography>
-          <Divider orientation="vertical" flexItem />
-          <Button
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '13px',
-              color: '#2874F0',
-              '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
-            }}
-          >
-            Past 3 months
-          </Button>
-        </Paper>
-
-        {/* Orders List */}
+      <Box sx={{ maxWidth: 1000, margin: '0 auto', px: 3, py: 6 }}>
         {loading ? (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            py: 10,
-            bgcolor: '#FFFFFF',
-            borderRadius: 1,
-          }}>
-            <CircularProgress sx={{ color: '#2874F0' }} />
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+            <CircularProgress sx={{ color: luxuryColors.maroon }} />
           </Box>
         ) : orders.length === 0 ? (
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 6, 
-              textAlign: 'center', 
-              bgcolor: '#FFFFFF',
-              border: '1px solid #E0E0E0',
-              borderRadius: 1,
-            }}
-          >
-            <Typography sx={{ fontSize: '18px', color: '#111111', fontWeight: 600, mb: 1 }}>
-              No orders yet
-            </Typography>
-            <Typography sx={{ fontSize: '14px', color: '#666666', mb: 3 }}>
-              Looks like you haven't placed any orders.
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={onBack}
-              sx={{
-                bgcolor: '#FF9900',
-                color: '#111111',
-                textTransform: 'none',
-                fontSize: '14px',
-                fontWeight: 600,
-                px: 3,
-                py: 1,
-                borderRadius: 20,
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: '#FFCE00',
-                  boxShadow: 'none',
-                }
-              }}
-            >
-              Start Shopping
+          <Box sx={{ textAlign: 'center', py: 10 }}>
+            <Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif', mb: 2 }}>Your wardrobe is waiting...</Typography>
+            <Button variant="contained" onClick={onBack} sx={{ bgcolor: luxuryColors.gold, borderRadius: '50px', px: 4, py: 1.5 }}>
+              Start Customizing
             </Button>
-          </Paper>
+          </Box>
         ) : (
-          orders.map((order) => (
-            <OrderCard key={order._id} order={order} />
-          ))
+          <Box>
+            <Typography sx={{ mb: 4, fontSize: '14px', fontWeight: 700, opacity: 0.6 }}>
+              SHOWING {orders.length} PREVIOUS ORDERS
+            </Typography>
+            {orders.map((order) => (
+              <OrderCard key={order._id} order={order} />
+            ))}
+          </Box>
         )}
       </Box>
     </Box>

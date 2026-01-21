@@ -10,6 +10,8 @@ import PaymentModal from "./components/PaymentModal";
 import CartDrawer from "./components/CartDrawer";
 import Dashboard from "./components/Dashboard";
 import Chatbot from "./components/Chatbot";
+import LandingPage from "./components/LandingPage";
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import product images
 import pattuImageUrl from './assets/category/i1.png';
@@ -35,8 +37,11 @@ import {
   SwapHoriz,
   Close,
   CheckCircle,
+  ArrowBack,
+  Person,
+  ShoppingBag,
 } from '@mui/icons-material';
-import { Modal, Stack, CircularProgress } from '@mui/material';
+import { Modal, Stack, CircularProgress, Menu, MenuItem } from '@mui/material';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -56,18 +61,27 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [view, setView] = useState("shop"); // 'shop' | 'dashboard'
   const [show3DView, setShow3DView] = useState(false);
-  
+
   // New state for Add-to-Cart Preview
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-  
+
   // Generated product image state
   const [generatedProductImage, setGeneratedProductImage] = useState(null);
   const [isGeneratingProductImage, setIsGeneratingProductImage] = useState(false);
   const [showAddToCartSuccess, setShowAddToCartSuccess] = useState(false);
   const [pendingImageName, setPendingImageName] = useState(null);
   const [genError, setGenError] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleProfileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   // Restore login session on load
   useEffect(() => {
@@ -128,7 +142,7 @@ function App() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to generate");
-      
+
       setGeneratedProductImage(`data:image/png;base64,${data.image_base64}`);
     } catch (err) {
       console.error(err);
@@ -164,7 +178,7 @@ function App() {
     };
 
     setCart([...cart, newItem]);
-    
+
     // Show success animation
     setShowAddToCartSuccess(true);
     setTimeout(() => setShowAddToCartSuccess(false), 2000);
@@ -233,11 +247,11 @@ function App() {
   };
 
   const products = [
-    { 
-      id: "pattu-paavadai", 
-      name: "Pattu Paavadai", 
-      blurb: "Handwoven silk skirt set crafted for festive shine.", 
-      accent: "#fbbf24", 
+    {
+      id: "pattu-paavadai",
+      name: "Pattu Paavadai",
+      blurb: "Handwoven silk skirt set crafted for festive shine.",
+      accent: "#fbbf24",
       image: pattuImageUrl,
       tag: "Traditional",
       price: "₹499",
@@ -246,12 +260,12 @@ function App() {
       rating: 4.5,
       reviews: 234
     },
-    { 
-      id: "ethnic-frock", 
-      name: "Ethnic Frock", 
-      blurb: "Lightweight frock with zari trims for celebrations.", 
-      accent: "#a855f7", 
-      image: ethnicFrockImageUrl, 
+    {
+      id: "ethnic-frock",
+      name: "Ethnic Frock",
+      blurb: "Lightweight frock with zari trims for celebrations.",
+      accent: "#a855f7",
+      image: ethnicFrockImageUrl,
       comingSoon: true,
       tag: "Festive",
       price: "₹0",
@@ -260,12 +274,12 @@ function App() {
       rating: 4.3,
       reviews: 156
     },
-    { 
-      id: "kurta-pyjama", 
-      name: "Kurta Pyjama", 
-      blurb: "Classic kurta with comfy pyjama for all-day wear.", 
-      accent: "#38bdf8", 
-      image: kurthaImageUrl, 
+    {
+      id: "kurta-pyjama",
+      name: "Kurta Pyjama",
+      blurb: "Classic kurta with comfy pyjama for all-day wear.",
+      accent: "#38bdf8",
+      image: kurthaImageUrl,
       comingSoon: true,
       tag: "Casual",
       price: "₹0",
@@ -274,12 +288,12 @@ function App() {
       rating: 4.6,
       reviews: 189
     },
-    { 
-      id: "kurta-pant", 
-      name: "Kurta Pant", 
-      blurb: "Structured kurta paired with modern slim pants.", 
-      accent: "#22c55e", 
-      image: pattuImageUrl, 
+    {
+      id: "kurta-pant",
+      name: "Kurta Pant",
+      blurb: "Structured kurta paired with modern slim pants.",
+      accent: "#22c55e",
+      image: pattuImageUrl,
       comingSoon: true,
       tag: "Modern",
       price: "₹0",
@@ -358,7 +372,7 @@ function App() {
 
   if (!user) {
     return (
-      <AuthForm onAuthSuccess={handleAuthSuccess} />
+      <LandingPage onAuthSuccess={handleAuthSuccess} />
     );
   }
 
@@ -390,47 +404,57 @@ function App() {
         position="fixed"
         elevation={0}
         sx={{
-          bgcolor: '#2874F0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          bgcolor: 'rgba(255, 253, 245, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(76, 0, 19, 0.05)',
           zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', minHeight: '56px !important', px: 3 }}>
-          {/* Left Section - Logo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Typography
-              variant="h6"
+        <Toolbar sx={{ justifyContent: 'space-between', minHeight: '80px !important', px: { xs: 2, md: 8 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
+              onClick={() => {
+                if (view === 'dashboard') setView('shop');
+                else setSelectedProduct(null);
+              }}
               sx={{
-                color: '#FFFFFF',
-                fontSize: '20px',
-                fontWeight: 700,
-                fontStyle: 'italic',
-                letterSpacing: '-0.5px',
-                cursor: 'pointer',
-                '&:hover': {
-                  opacity: 0.9,
-                }
+                color: '#4C0013',
+                bgcolor: 'rgba(76, 0, 19, 0.05)',
+                '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.1)' }
               }}
             >
-              Kuzhavi_kids
+              <ArrowBack />
+            </IconButton>
+
+            <Typography
+              variant="h5"
+              sx={{
+                color: '#4C0013',
+                fontWeight: 900,
+                fontFamily: '"Playfair Display", serif',
+                cursor: 'pointer',
+              }}
+              onClick={() => setSelectedProduct(null)}
+            >
+              Kuzhavi<span style={{ color: '#B38B00' }}>_Kids</span>
             </Typography>
 
             {activeProduct && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Divider 
-                  orientation="vertical" 
-                  flexItem 
-                  sx={{ 
-                    borderColor: 'rgba(255,255,255,0.2)',
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{
+                    borderColor: 'rgba(76, 0, 19, 0.1)',
                     height: '24px',
                     alignSelf: 'center',
-                  }} 
+                  }}
                 />
                 <Chip
                   label={activeProduct.name}
                   sx={{
-                    bgcolor: 'rgba(255,255,255,0.15)',
-                    color: '#FFFFFF',
+                    bgcolor: 'rgba(76, 0, 19, 0.05)',
+                    color: '#4C0013',
                     fontSize: '13px',
                     fontWeight: 600,
                     height: '28px',
@@ -444,14 +468,14 @@ function App() {
                   startIcon={<SwapHoriz sx={{ fontSize: 16 }} />}
                   onClick={handleChangeProduct}
                   sx={{
-                    color: '#FFFFFF',
+                    color: '#4C0013',
                     textTransform: 'none',
                     fontSize: '12px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     minWidth: 'auto',
                     px: 1,
                     '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.1)',
+                      bgcolor: 'rgba(76, 0, 19, 0.05)',
                     },
                   }}
                 >
@@ -464,16 +488,16 @@ function App() {
           {/* Right Section - Actions and User */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {activeProduct && (
-              <Button 
+              <Button
                 onClick={() => setView(view === 'shop' ? 'dashboard' : 'shop')}
-                sx={{ 
-                  color: '#FFFFFF',
-                  fontWeight: 600,
+                sx={{
+                  color: '#4C0013',
+                  fontWeight: 700,
                   textTransform: 'none',
                   fontSize: '14px',
                   px: 2,
-                  '&:hover': { 
-                    bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(76, 0, 19, 0.05)',
                   }
                 }}
               >
@@ -481,697 +505,183 @@ function App() {
               </Button>
             )}
 
-            <Divider 
-              orientation="vertical" 
-              flexItem 
-              sx={{ 
-                borderColor: 'rgba(255,255,255,0.2)',
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{
+                borderColor: 'rgba(76, 0, 19, 0.1)',
                 height: '32px',
                 alignSelf: 'center',
-              }} 
+              }}
             />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: '#FFFFFF',
-                  color: '#2874F0',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                }}
-              >
-                {user.name?.charAt(0).toUpperCase() || 'U'}
-              </Avatar>
-              <Box>
-                <Typography 
-                  sx={{ 
-                    color: '#FFFFFF', 
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {user.name}
-                </Typography>
-                <Typography
-                  sx={{
-                    color: 'rgba(255,255,255,0.8)',
-                    fontSize: '11px',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {user.email}
-                </Typography>
-              </Box>
               <IconButton
-                size="small"
-                onClick={handleSignOut}
-                sx={{
-                  color: '#FFFFFF',
-                  '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                  },
-                }}
+                onClick={handleProfileMenuOpen}
+                sx={{ p: 0.5, border: '2px solid rgba(179, 139, 0, 0.2)' }}
               >
-                <Logout sx={{ fontSize: 20 }} />
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: 'rgba(179, 139, 0, 0.1)',
+                    color: '#B38B00',
+                    border: '1.5px solid #B38B00',
+                  }}
+                >
+                  <Person sx={{ fontSize: 20 }} />
+                </Avatar>
               </IconButton>
+
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleProfileMenuClose}
+                PaperProps={{
+                  sx: {
+                    mt: 1.5,
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    minWidth: 180,
+                  }
+                }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <Box sx={{ px: 2, py: 1.5 }}>
+                  <Typography sx={{ fontWeight: 800, color: '#4C0013', fontSize: '14px' }}>{user.name}</Typography>
+                  <Typography sx={{ color: '#999', fontSize: '12px' }}>{user.email}</Typography>
+                </Box>
+                <Divider />
+                <MenuItem onClick={() => { handleProfileMenuClose(); setView('dashboard'); }}>
+                  <ShoppingBag sx={{ fontSize: 20, mr: 2, color: '#B38B00' }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>My Orders</Typography>
+                </MenuItem>
+                <MenuItem onClick={handleSignOut} sx={{ color: '#d32f2f' }}>
+                  <Logout sx={{ fontSize: 20, mr: 2 }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
+                </MenuItem>
+              </Menu>
             </Box>
           </Box>
         </Toolbar>
       </AppBar>
+      <Toolbar sx={{ minHeight: '80px !important' }} />
 
       {view === 'dashboard' ? (
         <Dashboard user={user} onBack={() => setView('shop')} />
       ) : (
         <div className="app-body">
+          {/* Left: Image/Scene Area */}
+          <div className="image-preview-pane">
+            {!show3DView && (activeProduct?.image || generatedProductImage || isGeneratingProductImage) ? (
+              <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+                {isGeneratingProductImage ? (
+                  <Box sx={{ textAlign: 'center' }}>
+                    <CircularProgress size={40} sx={{ color: '#4C0013', mb: 2 }} />
+                    <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#4C0013' }}>CRAFTING YOUR MASTERPIECE...</Typography>
+                  </Box>
+                ) : (
+                  <motion.img
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    src={generatedProductImage || activeProduct.image}
+                    alt={activeProduct.name}
+                    style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px' }}
+                  />
+                )}
+              </Box>
+            ) : null}
+
+            {show3DView && (
+              <Scene
+                fabricModels={fabricModels}
+                topColor={topColor}
+                bottomColor={bottomColor}
+                selectedTopStyle={selectedTopStyle}
+                selectedBottomStyle={selectedBottomStyle}
+                onTopStyleSelect={handleTopStyleSelect}
+                onBottomStyleSelect={handleBottomStyleSelect}
+              />
+            )}
+          </div>
+
+          {/* Middle: Product Details */}
+          <div className="details-pane">
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#111', mb: 1, fontFamily: '"Playfair Display", serif' }}>
+              {activeProduct?.name}
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <Chip label="4.3 ★" size="small" sx={{ bgcolor: '#2ecc71', color: 'white', fontWeight: 700 }} />
+              <Typography variant="body2" color="text.secondary">930 ratings & 54 reviews</Typography>
+            </Box>
+
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#4C0013', mb: 3 }}>
+              ₹499 <span style={{ fontSize: '16px', color: '#999', textDecoration: 'line-through', marginLeft: '10px' }}>₹2,999</span>
+              <span style={{ fontSize: '16px', color: '#2ecc71', marginLeft: '10px' }}>83% off</span>
+            </Typography>
+
+            <Divider sx={{ mb: 4 }} />
+
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Available Offers</Typography>
+            <Stack spacing={2} sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+                <Typography variant="body2"><strong>Bank Offer</strong> 10% off on SBI Credit Card, up to ₹1750 on orders of ₹5000 and above</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+                <Typography variant="body2"><strong>Bank Offer</strong> Extra 5% Cashback on Axis Bank Credit Card</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+                <Typography variant="body2"><strong>Special Price</strong> Get extra ₹1500 off (price inclusive of cashback/coupon)</Typography>
+              </Box>
+            </Stack>
+
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Product Description</Typography>
+            <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, mb: 4 }}>
+              This exquisite {activeProduct?.name} is a testament to traditional craftsmanship, tailored with premium fabrics to ensure your little one looks regal and feels comfortable at every celebration.
+            </Typography>
+          </div>
+
           <Sidebar
-          fabrics={fabrics}
-          selectedFabric={selectedFabric}
-          onFabricSelect={handleFabricSelect}
-          topStyles={topStyles}
-          selectedTopStyle={selectedTopStyle}
-          onTopStyleSelect={handleTopStyleSelect}
-          bottomStyles={bottomStyles}
-          selectedBottomStyle={selectedBottomStyle}
-          onBottomStyleSelect={handleBottomStyleSelect}
-          selectedDressType={selectedDressType}
-          onDressTypeSelect={setSelectedDressType}
-          selectedFabricType={selectedFabricType}
-          onFabricTypeSelect={setSelectedFabricType}
-          selectedSleeveType={selectedSleeveType}
-          onSleeveTypeSelect={setSelectedSleeveType}
-          selectedNeckDesign={selectedNeckDesign}
-          onNeckDesignSelect={setSelectedNeckDesign}
-          selectedBorderDesign={selectedBorderDesign}
-          onBorderDesignSelect={setSelectedBorderDesign}
-          topColor={topColor}
-          onTopColorChange={setTopColor}
-          bottomColor={bottomColor}
-          onBottomColorChange={setBottomColor}
-          onAddToCart={addToCart}
-          onBuyNow={handleBuyNow}
-          show3DView={show3DView}
-          onToggle3DView={() => setShow3DView(!show3DView)}
-          onApplyFilters={handleApplyFilters}
-          isGeneratingProductImage={isGeneratingProductImage}
-          cartCount={cart.length}
-        />
-
-        <div className="scene-panel">
-          {/* Left side - Product Image or 3D Model */}
-          {!show3DView && (activeProduct?.image || generatedProductImage || isGeneratingProductImage) ? (
-            <Box
-              sx={{
-                position: 'fixed',
-                top: 115,
-                left: 0,
-                width: '400px',
-                bottom: 80,
-                display: 'flex',
-                flexDirection: 'column',
-                bgcolor: '#FFFFFF',
-                borderRight: '1px solid #E0E0E0',
-                p: 2,
-                overflowY: 'auto',
-              }}
-            >
-              {isGeneratingProductImage ? (
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '400px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: '#F2F2F2',
-                    borderRadius: '8px',
-                    border: '1px solid #E0E0E0',
-                  }}
-                >
-                  <CircularProgress size={60} sx={{ color: '#2874F0', mb: 2 }} />
-                  <Typography sx={{ fontSize: '14px', color: '#666666' }}>
-                    Generating your custom design...
-                  </Typography>
-                </Box>
-              ) : (
-                <img
-                  src={generatedProductImage || activeProduct.image}
-                  alt={activeProduct.name}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '8px',
-                    border: '1px solid #E0E0E0',
-                    objectFit: 'cover',
-                  }}
-                />
-              )}
-            </Box>
-          ) : null}
-
-          {show3DView ? (
-            <Scene 
-              fabricModels={fabricModels}
-              topColor={topColor}
-              bottomColor={bottomColor}
-              selectedTopStyle={selectedTopStyle}
-              selectedBottomStyle={selectedBottomStyle}
-              onTopStyleSelect={handleTopStyleSelect}
-              onBottomStyleSelect={handleBottomStyleSelect}
-            />
-          ) : null}
-          
-          {/* Right side content area for product details */}
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 115,
-              left: show3DView || activeProduct?.image || generatedProductImage || isGeneratingProductImage ? '400px' : 0,
-              right: 0,
-              bottom: 80,
-              bgcolor: '#FFFFFF',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Product Details Section */}
-            <Box sx={{ p: 3 }}>
-              <Typography
-                sx={{
-                  fontSize: '24px',
-                  fontWeight: 600,
-                  color: '#111111',
-                  mb: 1,
-                  fontFamily: 'Arial, sans-serif',
-                }}
-              >
-                {activeProduct?.name}
-              </Typography>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Chip
-                  label="4.3★"
-                  size="small"
-                  sx={{
-                    bgcolor: '#2ecc71',
-                    color: '#FFFFFF',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                  }}
-                />
-                <Typography sx={{ fontSize: '14px', color: '#666666' }}>
-                  930 ratings and 54 reviews
-                </Typography>
-              </Box>
-
-              <Typography
-                sx={{
-                  fontSize: '14px',
-                  color: '#2ecc71',
-                  fontWeight: 600,
-                  mb: 1,
-                }}
-              >
-                Special price
-              </Typography>
-
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2 }}>
-                <Typography
-                  sx={{
-                    fontSize: '28px',
-                    fontWeight: 700,
-                    color: '#111111',
-                  }}
-                >
-                  ₹499
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '16px',
-                    color: '#666666',
-                    textDecoration: 'line-through',
-                  }}
-                >
-                  ₹2,999
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '16px',
-                    color: '#2ecc71',
-                    fontWeight: 600,
-                  }}
-                >
-                  83% off
-                </Typography>
-              </Box>
-
-              {/* Available Offers */}
-              <Box sx={{ mb: 3 }}>
-                <Typography
-                  sx={{
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    color: '#111111',
-                    mb: 2,
-                    fontFamily: 'Arial, sans-serif',
-                  }}
-                >
-                  Available offers
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        bgcolor: '#2ecc71',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        mt: 0.2,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 700 }}>₹</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                      <strong>Bank Offer</strong> Flat ₹50 off on EMI Card. Min Booking Amount: ₹2,500{' '}
-                      <Typography component="span" sx={{ color: '#2874F0', cursor: 'pointer', fontSize: '14px' }}>
-                        T&C
-                      </Typography>
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        bgcolor: '#2ecc71',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        mt: 0.2,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 700 }}>₹</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                      <strong>Bank Offer</strong> 10% off up to ₹1,500 on BOBCARD EMI Transactions, Min Txn Value: ₹5,000{' '}
-                      <Typography component="span" sx={{ color: '#2874F0', cursor: 'pointer', fontSize: '14px' }}>
-                        T&C
-                      </Typography>
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        bgcolor: '#2ecc71',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        mt: 0.2,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 700 }}>₹</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                      <strong>Bank Offer</strong> 5% cashback on Debit Card up to ₹750{' '}
-                      <Typography component="span" sx={{ color: '#2874F0', cursor: 'pointer', fontSize: '14px' }}>
-                        T&C
-                      </Typography>
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        bgcolor: '#2ecc71',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        mt: 0.2,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 700 }}>%</Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                      <strong>Special Price</strong> Get extra 53% off{' '}
-                      <Typography component="span" sx={{ color: '#2874F0', cursor: 'pointer', fontSize: '14px' }}>
-                        T&C
-                      </Typography>
-                    </Typography>
-                  </Box>
-
-                  <Typography
-                    sx={{
-                      fontSize: '14px',
-                      color: '#2874F0',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      ml: 3.5,
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                  >
-                    +8 more offers
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 3 }} />
-
-              {/* Delivery & Services */}
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                      <Box
-                        sx={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          bgcolor: '#2874F0',
-                        }}
-                      />
-                      <Typography sx={{ fontSize: '14px', color: '#666666', fontWeight: 500 }}>
-                        Deliver to
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                      <input
-                        type="text"
-                        placeholder="Enter delivery pincode"
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          background:'white',
-                          fontSize: '14px',
-                          border: '1px solid #CCCCCC',
-                          borderRadius: '4px',
-                          fontFamily: 'Arial, sans-serif',
-                        }}
-                      />
-                      <Button
-                        variant="outlined"
-                        sx={{
-                          textTransform: 'none',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          color: '#2874F0',
-                          borderColor: '#CCCCCC',
-                          px: 3,
-                          '&:hover': {
-                            borderColor: '#2874F0',
-                            bgcolor: 'rgba(40, 116, 240, 0.04)',
-                          },
-                        }}
-                      >
-                        Check
-                      </Button>
-                    </Box>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500, mb: 0.5 }}>
-                      Delivery by 16 Jan, Friday
-                    </Typography>
-                    <Typography sx={{ fontSize: '12px', color: '#666666', mb: 1 }}>
-                      if ordered before 6:59 AM
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: '14px',
-                        color: '#2874F0',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        '&:hover': { textDecoration: 'underline' },
-                      }}
-                    >
-                      View Details
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                      <Typography sx={{ fontSize: '14px', color: '#666666', fontWeight: 500 }}>
-                        Services
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          bgcolor: '#2874F0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Typography sx={{ fontSize: '10px', color: '#FFFFFF', fontWeight: 700 }}>₹</Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                        Cash on Delivery available
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 3 }} />
-
-              {/* Seller Info */}
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                  <Typography sx={{ fontSize: '14px', color: '#666666' }}>Seller</Typography>
-                  <Typography
-                    sx={{
-                      fontSize: '14px',
-                      color: '#2874F0',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                  >
-                    SOMVATISAREE
-                  </Typography>
-                  <Chip
-                    label="4.3★"
-                    size="small"
-                    sx={{
-                      bgcolor: '#2874F0',
-                      color: '#FFFFFF',
-                      fontWeight: 600,
-                      fontSize: '11px',
-                      height: '20px',
-                    }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Box
-                    sx={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      bgcolor: '#CCCCCC',
-                    }}
-                  />
-                  <Typography sx={{ fontSize: '14px', color: '#111111' }}>
-                    10 days return policy
-                  </Typography>
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: '14px',
-                    color: '#2874F0',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
-                  See other sellers
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 3 }} />
-
-              {/* Product Details */}
-              <Box>
-                <Typography
-                  sx={{
-                    fontSize: '18px',
-                    fontWeight: 600,
-                    color: '#111111',
-                    mb: 2,
-                    fontFamily: 'Arial, sans-serif',
-                  }}
-                >
-                  Product Details
-                </Typography>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Brand
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      tapovan fashion
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Fabric Type
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      {selectedFabricType}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Dress Type
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      {selectedDressType}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Sleeve Type
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      {selectedSleeveType}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Neck Design
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      {selectedNeckDesign}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Border Design
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      {selectedBorderDesign}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Pattern
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      Solid/Plain
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Occasion
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      Party, Festive
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Type of Embroidery
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      Sequin Work
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Typography sx={{ fontSize: '14px', color: '#666666', minWidth: '150px' }}>
-                      Decorative Material
-                    </Typography>
-                    <Typography sx={{ fontSize: '14px', color: '#111111', fontWeight: 500 }}>
-                      Sequins, Cotton Thread
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 3 }} />
-
-              {/* Ratings & Reviews Section */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography
-                      sx={{
-                        fontSize: '18px',
-                        fontWeight: 600,
-                        color: '#111111',
-                        fontFamily: 'Arial, sans-serif',
-                      }}
-                    >
-                      Ratings & Reviews
-                    </Typography>
-                    <Chip
-                      label="4.1★"
-                      size="small"
-                      sx={{
-                        bgcolor: '#2ecc71',
-                        color: '#FFFFFF',
-                        fontWeight: 600,
-                      }}
-                    />
-                    <Typography sx={{ fontSize: '14px', color: '#666666' }}>
-                      930 ratings and 54 reviews
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    bgcolor: '#F2F2F2',
-                    borderRadius: 2,
-                    mb: 2,
-                  }}
-                >
-                  <Typography sx={{ fontSize: '13px', color: '#666666', mb: 1 }}>
-                    What our customers felt:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip label="Light weight" size="small" sx={{ bgcolor: '#FFFFFF' }} />
-                    <Chip label="Quality of material" size="small" sx={{ bgcolor: '#FFFFFF' }} />
-                    <Chip label="Value for Money" size="small" sx={{ bgcolor: '#FFFFFF' }} />
-                    <Chip label="Comfort" size="small" sx={{ bgcolor: '#FFFFFF' }} />
-                    <Chip label="Opacity" size="small" sx={{ bgcolor: '#FFFFFF' }} />
-                  </Box>
-                </Paper>
-              </Box>
-            </Box>
-          </Box>
+            fabrics={fabrics}
+            selectedFabric={selectedFabric}
+            onFabricSelect={handleFabricSelect}
+            topStyles={topStyles}
+            selectedTopStyle={selectedTopStyle}
+            onTopStyleSelect={handleTopStyleSelect}
+            bottomStyles={bottomStyles}
+            selectedBottomStyle={selectedBottomStyle}
+            onBottomStyleSelect={handleBottomStyleSelect}
+            selectedDressType={selectedDressType}
+            onDressTypeSelect={setSelectedDressType}
+            selectedFabricType={selectedFabricType}
+            onFabricTypeSelect={setSelectedFabricType}
+            selectedSleeveType={selectedSleeveType}
+            onSleeveTypeSelect={setSelectedSleeveType}
+            selectedNeckDesign={selectedNeckDesign}
+            onNeckDesignSelect={setSelectedNeckDesign}
+            selectedBorderDesign={selectedBorderDesign}
+            onBorderDesignSelect={setSelectedBorderDesign}
+            topColor={topColor}
+            onTopColorChange={setTopColor}
+            bottomColor={bottomColor}
+            onBottomColorChange={setBottomColor}
+            onAddToCart={addToCart}
+            onBuyNow={handleBuyNow}
+            show3DView={show3DView}
+            onToggle3DView={() => setShow3DView(!show3DView)}
+            onApplyFilters={handleApplyFilters}
+            isGeneratingProductImage={isGeneratingProductImage}
+            cartCount={cart.length}
+          />
         </div>
-      </div>
       )}
+
 
       <CartDrawer
         open={isCartOpen}
@@ -1224,7 +734,7 @@ function App() {
       {/* Chatbot - Only for customer view */}
       <Chatbot />
 
-    </div>
+    </div >
   );
 }
 
