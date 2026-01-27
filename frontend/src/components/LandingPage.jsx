@@ -11,14 +11,25 @@ import {
     Button,
     Grid,
     Paper,
-    Divider
+    Divider,
+    TextField,
+    InputAdornment,
+    Badge,
+    Avatar
 } from '@mui/material';
 import {
     FavoriteBorder,
     ShoppingBagOutlined,
     Person,
-    AutoAwesome,
-    HistoryEdu,
+    Search,
+    WhatsApp,
+    Star,
+    PlayCircleOutline,
+    ArrowForwardIos,
+    Instagram,
+    Facebook,
+    Pinterest,
+    LocalOfferOutlined,
 } from '@mui/icons-material';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import AuthForm from './AuthForm';
@@ -26,7 +37,8 @@ import AuthForm from './AuthForm';
 const luxuryColors = {
     maroon: '#4C0013',
     gold: '#B38B00',
-    ivory: '#FFFDF5',
+    mustard: '#E3A018',
+    ivory: '#FFFBE6', // Warm Golden Ivory
     dark: '#1A0006',
     goldLight: '#D4AF37'
 };
@@ -35,402 +47,630 @@ const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
 
 export default function LandingPage({ onAuthSuccess }) {
-    const [currentImage, setCurrentImage] = useState(0);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const { scrollYProgress } = useScroll();
-    const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-    const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
+    const navOpacity = useTransform(scrollYProgress, [0, 100], [1, 0.95]);
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentImage((prev) => (prev + 1) % 5);
-        }, 6000);
-        return () => clearInterval(timer);
-    }, []);
-
-    const slideVariants = {
-        enter: { opacity: 0, scale: 1.1 },
-        center: { opacity: 1, scale: 1, transition: { duration: 1.2, ease: "easeOut" } },
-        exit: { opacity: 0, scale: 0.9, transition: { duration: 0.8 } }
+    const handleProtectedAction = (e) => {
+        if (e) e.preventDefault();
+        setIsLoginOpen(true);
     };
 
-    const fadeInUp = {
-        initial: { y: 60, opacity: 0 },
-        animate: { y: 0, opacity: 1, transition: { duration: 0.8, ease: "easeOut" } }
-    };
+    const categories = [
+        'Pattu Pavadai', 'Ethnic Gowns', 'Aari Work', 'Party Frocks', 'Budget Friendly', 'Ready to Dispatch'
+    ];
+
+    const bestSellers = [
+        { id: 10, title: 'Traditional Silk Pavadai', price: '₹1,999', img: '/images/p10.jpg' },
+        { id: 11, title: 'Designer Ethnic Gown', price: '₹2,499', img: '/images/p11.jpg' },
+        { id: 13, title: 'Golden Zari Pattu', price: '₹2,299', img: '/images/p13.jpg' },
+        { id: 14, title: 'Royal Maroon Frock', price: '₹1,699', img: '/images/p14.jpg' },
+    ];
+
+    const videoShorts = [
+        { id: 1, src: '/short_videos/v1.mp4', title: 'Silk Glow' },
+        { id: 2, src: '/short_videos/v2.mp4', title: 'Designer Fit' },
+        { id: 3, src: '/short_videos/v3.mp4', title: 'Zari Details' },
+        { id: 4, src: '/short_videos/v6.mp4', title: 'Festive Joy' }
+    ];
 
     return (
-        <Box sx={{ flexGrow: 1, bgcolor: luxuryColors.ivory, minHeight: '100vh', scrollBehavior: 'smooth' }}>
-            {/* Navigation Bar */}
+        <Box sx={{
+            flexGrow: 1,
+            bgcolor: luxuryColors.ivory,
+            minHeight: '100vh',
+            overflowX: 'hidden',
+            backgroundImage: `radial-gradient(circle at 80% 0%, rgba(227, 160, 24, 0.08) 0%, transparent 50%), 
+                             radial-gradient(circle at 0% 100%, rgba(179, 139, 0, 0.08) 0%, transparent 50%)`
+        }}>
+            {/* Announcement Bar */}
+            <Box sx={{ bgcolor: luxuryColors.maroon, py: 1, textAlign: 'center' }}>
+                <Typography sx={{ color: 'white', fontSize: '11px', fontWeight: 700, letterSpacing: '2px' }}>
+                    FREE SHIPPING ON ALL DOMESTIC ORDERS ABOVE ₹5000 • SHOP NOW
+                </Typography>
+            </Box>
+
+            {/* Main Header */}
             <AppBar
-                position="fixed"
+                position="sticky"
                 elevation={0}
                 sx={{
-                    bgcolor: 'rgba(255, 253, 245, 0.9)',
-                    backdropFilter: 'blur(10px)',
+                    bgcolor: 'white',
                     color: luxuryColors.maroon,
                     borderBottom: `1px solid rgba(76, 0, 19, 0.05)`,
-                    zIndex: (theme) => theme.zIndex.drawer + 1
+                    zIndex: 1100
                 }}
             >
-                <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 8 }, minHeight: '90px !important' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Typography
-                            variant="h4"
-                            sx={{
-                                fontWeight: 900,
-                                color: luxuryColors.maroon,
-                                letterSpacing: '-1.5px',
-                                cursor: 'pointer',
-                                fontFamily: '"Playfair Display", serif'
-                            }}
-                        >
-                            Kuzhavi<span style={{ color: luxuryColors.gold }}>_Kids</span>
-                        </Typography>
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
-                            {['COLLECTIONS', 'HERITAGE', 'CRAFT', 'JOURNAL'].map((item) => (
-                                <Typography
-                                    key={item}
-                                    sx={{
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        letterSpacing: '2px',
-                                        color: luxuryColors.maroon,
-                                        cursor: 'pointer',
-                                        '&:hover': { color: luxuryColors.gold }
-                                    }}
-                                >
-                                    {item}
-                                </Typography>
-                            ))}
-                        </Box>
+                <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 6 }, py: 1 }}>
+                    {/* Left: Logo */}
+                    <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                        <Box
+                            component="img"
+                            src="/images/logo.jpg"
+                            sx={{ height: 60, cursor: 'pointer' }}
+                            onClick={() => window.location.reload()}
+                        />
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconButton sx={{ color: luxuryColors.maroon }}>
-                            <FavoriteBorder />
-                        </IconButton>
-                        <IconButton
-                            onClick={() => setIsLoginOpen(true)}
+                    {/* Right: Search & Actions */}
+                    <Stack direction="row" spacing={3} sx={{ flex: 2, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                            <TextField
+                                placeholder="Search ethnic wear..."
+                                variant="standard"
+                                InputProps={{
+                                    disableUnderline: true,
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search sx={{ color: luxuryColors.maroon, opacity: 0.5 }} />
+                                        </InputAdornment>
+                                    ),
+                                    sx: {
+                                        bgcolor: 'rgba(76, 0, 19, 0.03)',
+                                        px: 2,
+                                        py: 1,
+                                        borderRadius: '50px',
+                                        fontSize: '13px',
+                                        width: '280px',
+                                        transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        border: '1px solid transparent',
+                                        '&:focus-within': {
+                                            bgcolor: 'white',
+                                            border: `1px solid rgba(76, 0, 19, 0.1)`,
+                                            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                                        }
+                                    }
+                                }}
+                            />
+                        </Box>
+                        <Button
+                            onClick={handleProtectedAction}
                             sx={{
-                                color: luxuryColors.gold,
-                                bgcolor: 'rgba(179, 139, 0, 0.1)',
-                                border: `1.5px solid ${luxuryColors.gold}`,
-                                borderRadius: '50%',
-                                p: 1,
-                                transition: '0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                color: luxuryColors.maroon,
+                                fontWeight: 800,
+                                fontSize: '13px',
+                                letterSpacing: '1px',
+                                border: `1.5px solid ${luxuryColors.maroon}`,
+                                px: 3,
+                                borderRadius: '50px',
                                 '&:hover': {
-                                    bgcolor: 'rgba(179, 139, 0, 0.2)',
-                                    transform: 'scale(1.1) rotate(5deg)',
-                                    boxShadow: '0 4px 12px rgba(179, 139, 0, 0.2)'
+                                    bgcolor: luxuryColors.maroon,
+                                    color: 'white'
                                 }
                             }}
                         >
-                            <Person sx={{ fontSize: 24 }} />
-                        </IconButton>
-                    </Box>
+                            SIGN IN
+                        </Button>
+                    </Stack>
                 </Toolbar>
+
+                {/* Category Bar */}
+                <Box sx={{
+                    display: { xs: 'none', md: 'flex' },
+                    justifyContent: 'center',
+                    gap: 6,
+                    py: 1.5,
+                    borderTop: '1px solid rgba(0,0,0,0.03)'
+                }}>
+                    {categories.map((cat) => (
+                        <Typography
+                            key={cat}
+                            onClick={handleProtectedAction}
+                            sx={{
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                letterSpacing: '1px',
+                                color: luxuryColors.maroon,
+                                cursor: 'pointer',
+                                position: 'relative',
+                                '&:hover': { color: luxuryColors.gold },
+                                '&:after': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    bottom: -4,
+                                    left: 0,
+                                    width: 0,
+                                    height: '1.5px',
+                                    bgcolor: luxuryColors.gold,
+                                    transition: '0.3s'
+                                },
+                                '&:hover:after': { width: '100%' }
+                            }}
+                        >
+                            {cat.toUpperCase()}
+                        </Typography>
+                    ))}
+                </Box>
             </AppBar>
 
-            <Toolbar sx={{ minHeight: '90px' }} />
-
-            {/* Hero Section */}
-            <MotionBox
-                style={{ opacity, scale }}
-                sx={{ px: { xs: 2, md: 4 }, py: 4 }}
-            >
-                <Box
-                    sx={{
-                        position: 'relative',
-                        height: { xs: '500px', md: '800px' },
+            {/* Hero Banner Section */}
+            <Box sx={{ position: 'relative', height: '85vh', overflow: 'hidden' }}>
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{
+                        position: 'absolute',
                         width: '100%',
-                        overflow: 'hidden',
-                        borderRadius: '40px',
-                        bgcolor: luxuryColors.dark,
-                        boxShadow: '0 40px 100px rgba(0,0,0,0.2)'
+                        height: '100%',
+                        objectFit: 'cover'
                     }}
                 >
-                    <AnimatePresence mode='wait'>
-                        <motion.div
-                            key={currentImage}
-                            variants={slideVariants}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            style={{
-                                position: 'absolute',
-                                width: '100%',
-                                height: '100%'
-                            }}
-                        >
-                            {/* Carousel Layer */}
-                            <Box
-                                sx={{
-                                    width: '100%',
-                                    height: '100%',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: `linear-gradient(rgba(26,0,6,0.3), rgba(26,0,6,0.7)), url('/images/placeholder_${currentImage}.jpg') center/cover`,
-                                    color: 'white',
-                                    textAlign: 'center',
-                                    p: 6
-                                }}
-                            >
-                                {/* Text Overlay */}
-                                <Box component={motion.div} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }}>
-                                    <Typography
-                                        variant="overline"
-                                        sx={{
-                                            letterSpacing: '6px',
-                                            color: luxuryColors.gold,
-                                            fontWeight: 700,
-                                            fontSize: '14px'
-                                        }}
-                                    >
-                                        PREMIUM ETHNIC COLLECTION
-                                    </Typography>
-                                    <Typography
-                                        variant="h1"
-                                        sx={{
-                                            fontFamily: '"Playfair Display", serif',
-                                            fontWeight: 800,
-                                            fontSize: { xs: '3.5rem', md: '7rem' },
-                                            lineHeight: 1,
-                                            mb: 4,
-                                            mt: 2,
-                                            textShadow: '0 10px 30px rgba(0,0,0,0.3)'
-                                        }}
-                                    >
-                                        Regal Threads for <br /> <span style={{ fontStyle: 'italic', color: luxuryColors.goldLight }}>Little Royals</span>
-                                    </Typography>
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() => setIsLoginOpen(true)}
-                                        sx={{
-                                            borderColor: 'white',
-                                            color: 'white',
-                                            px: 6,
-                                            py: 2,
-                                            borderRadius: '50px',
-                                            fontSize: '14px',
-                                            fontWeight: 700,
-                                            letterSpacing: '2px',
-                                            borderWidth: '2px',
-                                            '&:hover': {
-                                                bgcolor: 'white',
-                                                color: luxuryColors.maroon,
-                                                borderColor: 'white'
-                                            }
-                                        }}
-                                    >
-                                        EXPLORE COLLECTION
-                                    </Button>
-                                </Box>
-                            </Box>
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Carousel Dots */}
-                    <Stack
-                        direction="column"
-                        spacing={2}
+                    <source src="/short_videos/v4.mp4" type="video/mp4" />
+                </video>
+                <Box sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    bgcolor: 'rgba(26, 0, 6, 0.4)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    color: 'white',
+                    p: 4
+                }}>
+                    <MotionTypography
+                        initial={{ y: 30, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 1 }}
+                        variant="h1"
                         sx={{
-                            position: 'absolute',
-                            right: 40,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10
+                            fontFamily: '"Playfair Display", serif',
+                            fontSize: { xs: '3rem', md: '6rem' },
+                            fontWeight: 900,
+                            mb: 2
                         }}
                     >
-                        {[0, 1, 2, 3, 4].map((i) => (
-                            <Box
-                                key={i}
-                                onClick={() => setCurrentImage(i)}
-                                sx={{
-                                    width: '4px',
-                                    height: currentImage === i ? '40px' : '15px',
-                                    bgcolor: currentImage === i ? luxuryColors.gold : 'rgba(255,255,255,0.3)',
-                                    borderRadius: '2px',
-                                    cursor: 'pointer',
-                                    transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-                                }}
-                            />
-                        ))}
-                    </Stack>
-                </Box>
-            </MotionBox>
+                        Little Heirlooms,<br />Infinite Love.
+                    </MotionTypography>
+                    <Typography sx={{ fontSize: '18px', mb: 4, letterSpacing: '3px', fontWeight: 300 }}>
+                        TRADITIONAL CRAFT REIMAGINED FOR TOMORROW
+                    </Typography>
 
-            {/* Heritage Section */}
-            <Container maxWidth="lg" sx={{ py: 15 }}>
-                <Grid container spacing={10} alignItems="center">
-                    <Grid item xs={12} md={6}>
-                        <MotionBox whileInView="animate" initial="initial" variants={fadeInUp}>
-                            <Typography
-                                variant="h6"
+                </Box>
+                {/* Decorative Scroll Down Indication */}
+                <MotionBox
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    sx={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', color: 'white', opacity: 0.6 }}
+                >
+                    <Typography sx={{ fontSize: '10px', letterSpacing: '4px', fontWeight: 800 }}>SCROLL</Typography>
+                </MotionBox>
+            </Box>
+
+            {/* Horizontal Scroll Featured Collections */}
+            <Container maxWidth={false} sx={{ mt: -6, position: 'relative', zIndex: 10, px: { xs: 2, md: 10 } }}>
+                <Grid container spacing={8} sx={{ display: 'flex' }}>
+                    {[
+                        { title: 'New Arrivals', img: '/images/p20.jpg' },
+                        { title: 'Bestsellers', img: '/images/p40.jpg' },
+                        { title: 'Artisan Picks', img: '/images/p35.jpg' },
+                        { title: 'Heritage Edit', img: '/images/p34.jpg' }
+                    ].map((item, idx) => (
+                        <Grid item xs={6} sx={{ display: 'flex', width: { md: '20%' }, flex: { md: '0 0 20%' } }} key={idx}>
+                            <Paper
+                                elevation={0}
+                                onClick={handleProtectedAction}
                                 sx={{
-                                    color: luxuryColors.gold,
-                                    fontFamily: '"Cormorant Garamond", serif',
-                                    fontStyle: 'italic',
-                                    fontSize: '28px'
-                                }}
-                            >
-                                Our Heritage
-                            </Typography>
-                            <Typography
-                                variant="h3"
-                                sx={{
-                                    fontFamily: '"Playfair Display", serif',
-                                    color: luxuryColors.maroon,
-                                    fontWeight: 800,
-                                    mb: 4,
-                                    mt: 1
-                                }}
-                            >
-                                Preserving Handwoven <br /> Craftsmanship
-                            </Typography>
-                            <Typography
-                                sx={{
-                                    color: 'rgba(76, 0, 19, 0.7)',
-                                    lineHeight: 2,
-                                    fontSize: '18px',
-                                    fontFamily: '"Cormorant Garamond", serif',
-                                    mb: 4
-                                }}
-                            >
-                                Every piece at Kuzhavi Kids is a labor of love. We work with master weavers across South India to bring you the finest Kanchipuram silk and Banarasi weaves, reimagined for the modern child. Our Pattupavadai sets are not just clothes; they are heirlooms.
-                            </Typography>
-                            <Button sx={{ color: luxuryColors.maroon, fontWeight: 900, fontSize: '12px', letterSpacing: '2px' }}>
-                                LEARN MORE —
-                            </Button>
-                        </MotionBox>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Box
-                            sx={{
-                                position: 'relative',
-                                height: '600px',
-                                width: '100%',
-                                borderRadius: '300px 300px 0 0',
-                                bgcolor: '#F0EAD6',
-                                overflow: 'hidden',
-                                boxShadow: '0 30px 60px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            <Box
-                                sx={{
+                                    height: '300px',
                                     width: '100%',
-                                    height: '100%',
-                                    background: 'linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url("/images/heritage_place.jpg") center/cover',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
+                                    borderRadius: '24px',
+                                    overflow: 'hidden',
+                                    position: 'relative',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 30px 60px rgba(76, 0, 19, 0.08)',
+                                    transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    '&:hover': {
+                                        transform: 'translateY(-12px)',
+                                        boxShadow: '0 40px 80px rgba(76, 0, 19, 0.15)'
+                                    },
+                                    '&:hover .collection-img': {
+                                        transform: 'scale(1.1)',
+                                    }
                                 }}
                             >
-                                <Typography sx={{ opacity: 0.3, fontWeight: 900 }}>THE CRAFT</Typography>
-                            </Box>
-                        </Box>
-                    </Grid>
+                                <Box
+                                    component="img"
+                                    src={item.img}
+                                    className="collection-img"
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        transition: '1s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}
+                                />
+                                <Box sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'linear-gradient(to top, rgba(26, 0, 6, 0.8), transparent 60%)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'flex-end',
+                                    p: 4,
+                                    color: 'white'
+                                }}>
+                                    <Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 800 }}>{item.title}</Typography>
+                                    <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', opacity: 0.8 }}>EXPLORE COLLECTION —</Typography>
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    ))}
                 </Grid>
             </Container>
 
-            {/* Categories / Collections Grid */}
-            <Box sx={{ bgcolor: luxuryColors.maroon, py: 15, color: 'white' }}>
-                <Container maxWidth="xl">
-                    <Box sx={{ textAlign: 'center', mb: 10 }}>
-                        <Typography variant="overline" sx={{ letterSpacing: '4px', opacity: 0.7 }}>CURATED COLLECTIONS</Typography>
-                        <Typography variant="h2" sx={{ fontFamily: '"Playfair Display", serif', mt: 2 }}>Timeless Traditions</Typography>
-                    </Box>
-                    <Grid container spacing={4}>
-                        {[
-                            { title: 'Pattu Pavadai', desc: 'Silk elegance for festivities' },
-                            { title: 'Ethnic Frocks', desc: 'Contemporary twist on classics' },
-                            { title: 'Kurta Sets', desc: 'Dapper looks for young gents' },
-                            { title: 'New Arrivals', desc: 'Fresh from our artisans' }
-                        ].map((cat, i) => (
-                            <Grid item xs={12} sm={6} md={3} key={cat.title}>
-                                <MotionBox
-                                    whileHover={{ y: -20 }}
-                                    sx={{
-                                        height: '500px',
-                                        bgcolor: 'rgba(255,255,255,0.05)',
-                                        borderRadius: '24px',
-                                        p: 4,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'flex-end',
-                                        cursor: 'pointer',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        position: 'relative',
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <Typography variant="h4" sx={{ fontFamily: '"Playfair Display", serif', mb: 1 }}>{cat.title}</Typography>
-                                    <Typography sx={{ opacity: 0.6, fontSize: '14px' }}>{cat.desc}</Typography>
-                                    <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.2)' }} />
-                                    <Typography sx={{ fontWeight: 800, fontSize: '12px', letterSpacing: '2px' }}>DISCOVER</Typography>
-                                </MotionBox>
+            {/* Best Sellers Section */}
+            <Container maxWidth={false} sx={{ pt: 12, pb: 5, px: { xs: 2, md: 10 } }}>
+                <Box sx={{ mb: 8, textAlign: 'center' }}>
+                    <Typography variant="overline" sx={{ color: luxuryColors.gold, fontWeight: 800, letterSpacing: '6px' }}>TRUSTED FAVORITES</Typography>
+                    <Typography variant="h2" sx={{ fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontWeight: 900, mt: 1 }}>The Best Sellers</Typography>
+                </Box>
+                <Grid container spacing={4}>
+                    {bestSellers.map((product) => (
+                        <Grid item xs={6} sm={6} md={3} key={product.id}>
+                            <Box onClick={handleProtectedAction} sx={{ cursor: 'pointer', height: '100%' }}>
+                                <Box sx={{
+                                    height: '280px',
+                                    width: '100%',
+                                    borderRadius: '20px',
+                                    overflow: 'hidden',
+                                    mb: 2,
+                                    position: 'relative',
+                                    '&:hover .quick-add': { opacity: 1, y: 0 },
+                                    '&:hover img': { transform: 'scale(1.1)' }
+                                }}>
+                                    <Box
+                                        component="img"
+                                        src={product.img}
+                                        sx={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                    />
+                                    <Box className="quick-add" sx={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bgcolor: 'rgba(255,255,255,0.95)',
+                                        backdropFilter: 'blur(5px)',
+                                        p: 2,
+                                        opacity: 0,
+                                        transform: 'translateY(100%)',
+                                        transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}>
+                                        <Button fullWidth sx={{ color: luxuryColors.maroon, fontWeight: 800, fontSize: '12px' }}>QUICK ADD +</Button>
+                                    </Box>
+                                </Box>
+                                <Typography sx={{ fontWeight: 700, fontSize: '15px' }}>{product.title}</Typography>
+                                <Typography sx={{ color: luxuryColors.gold, fontWeight: 800 }}>{product.price}</Typography>
+                            </Box>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Container>
+
+            {/* Shop by Video Section */}
+            <Box sx={{ pt: 12, pb: 2 }}>
+                <Container maxWidth={false} sx={{ px: { xs: 2, md: 10 } }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mb: 6 }}>
+                        <Box>
+                            <Typography variant="overline" sx={{ color: luxuryColors.maroon, fontWeight: 800 }}>EXPERIENCE THE FALL</Typography>
+                            <Typography variant="h3" sx={{ fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontWeight: 800 }}>Shop by Video</Typography>
+                        </Box>
+                        <Button
+                            onClick={handleProtectedAction}
+                            endIcon={<PlayCircleOutline />}
+                            sx={{ color: luxuryColors.maroon, fontWeight: 800 }}
+                        >
+                            VIEW ALL VIDEOS
+                        </Button>
+                    </Stack>
+                    <Grid container spacing={5} sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+                        {videoShorts.map((video) => (
+                            <Grid item xs={8} sm={4} md={3} key={video.id} sx={{ flexShrink: 0 }}>
+                                <Box sx={{
+                                    height: '400px', // Slightly reduced height
+                                    borderRadius: '24px',
+                                    overflow: 'hidden',
+                                    position: 'relative',
+                                    border: '1px solid rgba(0,0,0,0.05)',
+                                    cursor: 'pointer'
+                                }}>
+                                    <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
+                                        <source src={video.src} type="video/mp4" />
+                                    </video>
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        p: 2,
+                                        background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+                                        color: 'white'
+                                    }}>
+                                        <Typography sx={{ fontWeight: 800, fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase' }}>{video.title}</Typography>
+                                    </Box>
+                                </Box>
                             </Grid>
                         ))}
                     </Grid>
                 </Container>
             </Box>
 
-            {/* Craftsmanship Section */}
-            <Container maxWidth="lg" sx={{ py: 15 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                    <AutoAwesome sx={{ color: luxuryColors.gold, fontSize: 40, mb: 3 }} />
-                    <Typography variant="h3" sx={{ fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, mb: 4 }}>Why Kuzhavi Kids?</Typography>
-                    <Grid container spacing={6} sx={{ mt: 4 }}>
-                        {[
-                            { icon: <HistoryEdu />, title: 'Authentic Weaves', text: '100% genuine silk sourced from hereditary weavers.' },
-                            { icon: <ShoppingBagOutlined />, title: 'Custom Fit', text: 'Tailored dimensions to ensure comfort for your little ones.' },
-                            { icon: <ShoppingBagOutlined />, title: 'Global Delivery', text: 'Preserving traditions, shipping happiness worldwide.' }
-                        ].map((item, i) => (
-                            <Grid item xs={12} md={4} key={item.title}>
-                                <Box sx={{ p: 4 }}>
-                                    <Box sx={{ color: luxuryColors.gold, mb: 2 }}>{item.icon}</Box>
-                                    <Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif', mb: 2, color: luxuryColors.maroon }}>{item.title}</Typography>
-                                    <Typography sx={{ color: 'rgba(0,0,0,0.6)', lineHeight: 1.8 }}>{item.text}</Typography>
-                                </Box>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Box>
+            {/* Testimonials - Book View */}
+            <Container maxWidth="lg" sx={{ pt: 12, pb: 20, textAlign: 'center' }}>
+                <MotionBox
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1 }}
+                >
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: luxuryColors.gold,
+                            letterSpacing: '5px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            mb: 2
+                        }}
+                    >
+                        THE KUZHAVI EXPERIENCE
+                    </Typography>
+                    <Typography
+                        variant="h2"
+                        sx={{
+                            fontFamily: '"Playfair Display", serif',
+                            color: luxuryColors.maroon,
+                            mb: 8,
+                            fontWeight: 900
+                        }}
+                    >
+                        Voices from Our Tribe
+                    </Typography>
+                </MotionBox>
+                <Grid container spacing={0} sx={{ justifyContent: 'center' }}>
+                    {[
+                        { name: "Ananya Iyer", text: "The pattu pavadai exceeded my expectations. The zari is so subtle yet rich. My daughter looked like a little queen on her first birthday!" },
+                        { name: "Meera Krishnan", text: "Quality is unmatched. The silk feels so pure and the stitching is perfect for children's sensitive skin. Highly recommend!" },
+                    ].map((item, i) => (
+                        <Grid item xs={12} md={5} key={i}>
+                            <MotionBox
+                                initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.8 }}
+                                sx={{
+                                    p: 6,
+                                    bgcolor: '#FFFDF9', // Parchment color
+                                    border: `1.5px solid rgba(179, 139, 0, 0.3)`,
+                                    borderLeft: i % 2 === 0 ? `4px solid ${luxuryColors.mustard}` : '1.5px solid rgba(179, 139, 0, 0.3)',
+                                    borderRight: i % 2 !== 0 ? `4px solid ${luxuryColors.mustard}` : '1.5px solid rgba(179, 139, 0, 0.3)',
+                                    borderRadius: i % 2 === 0 ? '40px 0 0 40px' : '0 40px 40px 0', // Book spread shape
+                                    boxShadow: i % 2 === 0
+                                        ? `-15px 15px 35px ${luxuryColors.mustard}15, -5px 5px 10px rgba(0,0,0,0.02)`
+                                        : `15px 15px 35px ${luxuryColors.mustard}15, 5px 5px 10px rgba(0,0,0,0.02)`,
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    textAlign: i % 2 === 0 ? 'right' : 'left',
+                                    px: 8
+                                }}
+                            >
+                                <Stack direction="row" spacing={1} justifyContent={i % 2 === 0 ? "flex-end" : "flex-start"} sx={{ mb: 3, color: luxuryColors.gold }}>
+                                    {[1, 2, 3, 4, 5].map(s => <Star key={s} sx={{ fontSize: 14 }} />)}
+                                </Stack>
+                                <Typography sx={{
+                                    fontStyle: 'italic',
+                                    color: luxuryColors.maroon,
+                                    mb: 3,
+                                    lineHeight: 1.8,
+                                    fontSize: '18px',
+                                    fontFamily: '"Cormorant Garamond", serif',
+                                    opacity: 0.8
+                                }}>
+                                    "{item.text}"
+                                </Typography>
+                                <Typography sx={{
+                                    fontWeight: 900,
+                                    fontSize: '11px',
+                                    letterSpacing: '3px',
+                                    color: luxuryColors.gold,
+                                    textTransform: 'uppercase'
+                                }}>
+                                    — {item.name}
+                                </Typography>
+                            </MotionBox>
+                        </Grid>
+                    ))}
+                </Grid>
             </Container>
 
-            {/* Login Popover */}
+            {/* Heritage Banner - High Luxury */}
+            <Box sx={{
+                bgcolor: luxuryColors.dark,
+                pt: 12,
+                pb: 10,
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'radial-gradient(circle at 50% 50%, rgba(179, 139, 0, 0.1) 0%, transparent 70%)',
+                }} />
+                <Container maxWidth="md">
+                    <MotionBox
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 1.5 }}
+                    >
+                        <Typography sx={{ color: luxuryColors.gold, fontStyle: 'italic', fontFamily: '"Cormorant Garamond", serif', fontSize: '32px', mb: 3 }}>
+                            Tradition is not the worship of ashes,
+                        </Typography>
+                        <Typography variant="h2" sx={{ color: 'white', fontFamily: '"Playfair Display", serif', fontWeight: 900, mb: 4 }}>
+                            But the preservation of fire.
+                        </Typography>
+                        <Divider sx={{ width: '60px', bgcolor: luxuryColors.gold, height: '2px', mx: 'auto', mb: 4, border: 'none' }} />
+                        <Typography sx={{ color: 'rgba(255,255,255,0.6)', letterSpacing: '2px', fontSize: '13px', fontWeight: 700 }}>
+                            ESTABLISHED 2026 • SOUTH INDIA
+                        </Typography>
+                    </MotionBox>
+                </Container>
+            </Box>
+
+            {/* WhatsApp Floating Button */}
+            <IconButton
+                sx={{
+                    position: 'fixed',
+                    bottom: 40,
+                    right: 40,
+                    bgcolor: '#25D366',
+                    color: 'white',
+                    p: 2,
+                    boxShadow: '0 10px 30px rgba(37, 211, 102, 0.3)',
+                    '&:hover': { bgcolor: '#128C7E' },
+                    zIndex: 1200
+                }}
+                onClick={() => window.open('https://wa.me/91XXXXXXXXXX')}
+            >
+                <WhatsApp sx={{ fontSize: 32 }} />
+            </IconButton>
+
+            {/* Footer */}
+            <Box sx={{ bgcolor: luxuryColors.maroon, pt: 6, pb: 4, color: 'white' }}>
+                <Container maxWidth="lg">
+                    <Grid container spacing={8} sx={{ mb: 10 }}>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="h4" sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 900, mb: 3 }}>Kuzhavi_Kids</Typography>
+                            <Typography sx={{ opacity: 0.6, fontSize: '14px', lineHeight: 2, mb: 4 }}>
+                                Handcrafting memories for your little ones with the touch of tradition and the comfort of modern standards. Based in the heart of South India.
+                            </Typography>
+                            <Stack direction="row" spacing={3}>
+                                <Instagram
+                                    onClick={() => window.open('https://www.instagram.com/kuzhavi_kids_clothing/?hl=en', '_blank')}
+                                    sx={{ cursor: 'pointer', '&:hover': { color: luxuryColors.gold } }}
+                                />
+                                <Facebook
+                                    onClick={() => window.open('https://www.facebook.com/p/kuzhavi_kids_clothing-100083258953249/', '_blank')}
+                                    sx={{ cursor: 'pointer', '&:hover': { color: luxuryColors.gold } }}
+                                />
+                                <Pinterest
+                                    onClick={() => window.open('https://in.pinterest.com/kuzhavikidswear/', '_blank')}
+                                    sx={{ cursor: 'pointer', '&:hover': { color: luxuryColors.gold } }}
+                                />
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                            <Typography sx={{ fontWeight: 800, mb: 3, fontSize: '12px', letterSpacing: '2px' }}>QUICK LINKS</Typography>
+                            <Stack spacing={2}>
+                                {['Collections', 'New Arrivals', 'Ready to dispatch', 'Gift Cards'].map(l => (
+                                    <Typography
+                                        key={l}
+                                        onClick={handleProtectedAction}
+                                        sx={{ opacity: 0.6, fontSize: '14px', cursor: 'pointer', '&:hover': { opacity: 1 } }}
+                                    >
+                                        {l}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                            <Typography sx={{ fontWeight: 800, mb: 3, fontSize: '12px', letterSpacing: '2px' }}>POLICIES</Typography>
+                            <Stack spacing={2}>
+                                {['Shipping', 'Returns', 'Privacy', 'Size Guide'].map(l => (
+                                    <Typography
+                                        key={l}
+                                        onClick={handleProtectedAction}
+                                        sx={{ opacity: 0.6, fontSize: '14px', cursor: 'pointer', '&:hover': { opacity: 1 } }}
+                                    >
+                                        {l}
+                                    </Typography>
+                                ))}
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography sx={{ fontWeight: 800, mb: 3, fontSize: '12px', letterSpacing: '2px' }}>NEWSLETTER</Typography>
+                            <Typography sx={{ opacity: 0.6, fontSize: '14px', mb: 3 }}>Join our tribe for exclusive access and ethnic styling tips.</Typography>
+                            <TextField
+                                fullWidth
+                                placeholder="Your Email"
+                                variant="standard"
+                                InputProps={{
+                                    disableUnderline: false,
+                                    sx: { color: 'white', '&:after': { borderColor: luxuryColors.gold } },
+                                    endAdornment: <Button sx={{ color: luxuryColors.gold, fontWeight: 900 }}>JOIN</Button>
+                                }}
+                            />
+                        </Grid>
+                    </Grid>
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 4 }} />
+                    <Typography sx={{ fontSize: '11px', textAlign: 'center', opacity: 0.4, letterSpacing: '2px' }}>
+                        © 2026 KUZHAVI KIDS. CRAFTED BY TRADITION.
+                    </Typography>
+                </Container>
+            </Box>
+
+            {/* Login Dialog */}
             <Dialog
                 open={isLoginOpen}
                 onClose={() => setIsLoginOpen(false)}
-                maxWidth="xs"
-                fullWidth
-                scroll="body"
+                maxWidth="sm"
+                fullWidth={false}
                 PaperProps={{
                     sx: {
                         borderRadius: '40px',
-                        p: 0,
-                        overflow: 'hidden',
-                        boxShadow: '0 50px 100px rgba(0,0,0,0.5)',
-                        bgcolor: '#FFFFFF'
+                        overflowY: 'auto',
+                        maxHeight: '94vh',
+                        bgcolor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 40px 100px rgba(76, 0, 19, 0.15)',
+                        border: '1px solid rgba(76, 0, 19, 0.1)',
+                        m: 2
+                    }
+                }}
+                sx={{
+                    '& .MuiBackdrop-root': {
+                        bgcolor: 'rgba(26, 0, 6, 0.4)',
+                        backdropFilter: 'blur(8px)'
                     }
                 }}
             >
-                <Box sx={{ p: 0 }}>
-                    <AuthForm onAuthSuccess={(data) => {
-                        setIsLoginOpen(false);
-                        onAuthSuccess(data);
-                    }} />
-                </Box>
+                <AuthForm
+                    onAuthSuccess={(data) => { setIsLoginOpen(false); onAuthSuccess(data); }}
+                    onClose={() => setIsLoginOpen(false)}
+                />
             </Dialog>
-
-            {/* Footer (Minimal) */}
-            <Box sx={{ py: 6, textAlign: 'center', borderTop: '1px solid #EEE' }}>
-                <Typography sx={{ fontSize: '12px', letterSpacing: '2px', opacity: 0.5 }}>
-                    © 2026 KUZHAVI KIDS. ALL RIGHTS RESERVED.
-                </Typography>
-            </Box>
         </Box>
     );
 }

@@ -11,12 +11,15 @@ import CartDrawer from "./components/CartDrawer";
 import Dashboard from "./components/Dashboard";
 import Chatbot from "./components/Chatbot";
 import LandingPage from "./components/LandingPage";
+import Favorites from "./components/Favorites";
+import AboutPattupavadai from "./components/AboutPattupavadai";
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import product images
-import pattuImageUrl from './assets/category/i1.png';
-import ethnicFrockImageUrl from './assets/category/i2.png';
-import kurthaImageUrl from './assets/category/i3.png';
+const pattuImageUrl = '/images/pattupavadai.png';
+const ethnicFrockImageUrl = '/images/ethnicfrock.jpg';
+const kurthaImageUrl = '/images/kurtapyjama.jpg';
+const kurtaPantImageUrl = '/images/kurtapant.jpg';
 
 import {
   Box,
@@ -40,8 +43,11 @@ import {
   ArrowBack,
   Person,
   ShoppingBag,
+  Search,
+  ShoppingBagOutlined,
+  FavoriteBorder
 } from '@mui/icons-material';
-import { Modal, Stack, CircularProgress, Menu, MenuItem } from '@mui/material';
+import { Modal, Stack, CircularProgress, Menu, MenuItem, InputAdornment, TextField, Badge } from '@mui/material';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -57,10 +63,12 @@ function App() {
   const [topColor, setTopColor] = useState("#ff6600");
   const [bottomColor, setBottomColor] = useState("#2ecc71");
   const [cart, setCart] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [view, setView] = useState("shop"); // 'shop' | 'dashboard'
   const [show3DView, setShow3DView] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   // New state for Add-to-Cart Preview
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -71,6 +79,7 @@ function App() {
   const [generatedProductImage, setGeneratedProductImage] = useState(null);
   const [isGeneratingProductImage, setIsGeneratingProductImage] = useState(false);
   const [showAddToCartSuccess, setShowAddToCartSuccess] = useState(false);
+  const [showAddToFavSuccess, setShowAddToFavSuccess] = useState(false);
   const [pendingImageName, setPendingImageName] = useState(null);
   const [genError, setGenError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -212,6 +221,50 @@ function App() {
     setIsCartOpen(true);
   };
 
+  const addToFavorites = () => {
+    if (!activeProduct) return;
+
+    const error = validateSelection();
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    const newItem = {
+      product_id: activeProduct.id,
+      product_name: activeProduct.name,
+      fabric_type: selectedFabricType,
+      top_style: selectedTopStyle,
+      bottom_style: selectedBottomStyle,
+      dress_type: selectedDressType,
+      sleeve_type: selectedSleeveType,
+      neck_design: selectedNeckDesign,
+      border_design: selectedBorderDesign,
+      top_color: topColor,
+      bottom_color: bottomColor,
+      accent: activeProduct.accent,
+      preview_url: generatedProductImage || activeProduct.image
+    };
+
+    setFavorites([...favorites, newItem]);
+    setShowAddToFavSuccess(true);
+    setTimeout(() => setShowAddToFavSuccess(false), 2000);
+  };
+
+  const handleMoveToBag = (item, index) => {
+    setCart([...cart, item]);
+    const newFavs = [...favorites];
+    newFavs.splice(index, 1);
+    setFavorites(newFavs);
+    setIsCartOpen(true);
+  };
+
+  const handleRemoveFavorite = (index) => {
+    const newFavs = [...favorites];
+    newFavs.splice(index, 1);
+    setFavorites(newFavs);
+  };
+
   const handlePaymentSuccess = async () => {
     if (!user) return;
 
@@ -293,7 +346,7 @@ function App() {
       name: "Kurta Pant",
       blurb: "Structured kurta paired with modern slim pants.",
       accent: "#22c55e",
-      image: pattuImageUrl,
+      image: kurtaPantImageUrl,
       comingSoon: true,
       tag: "Modern",
       price: "₹0",
@@ -381,6 +434,25 @@ function App() {
     return <AdminPanel onSignOut={handleSignOut} />;
   }
 
+  if (view === 'about') {
+    return <AboutPattupavadai onBack={() => setView('shop')} />;
+  }
+
+  if (view === 'dashboard') {
+    return <Dashboard user={user} onBack={() => setView('shop')} />;
+  }
+
+  if (view === 'favorites') {
+    return (
+      <Favorites
+        favorites={favorites}
+        onBack={() => setView('shop')}
+        onRemove={handleRemoveFavorite}
+        onMoveToBag={handleMoveToBag}
+      />
+    );
+  }
+
   if (!selectedProduct) {
     return (
       <ProductSelect
@@ -388,6 +460,7 @@ function App() {
         products={products}
         onSelect={handleProductSelect}
         onSignOut={handleSignOut}
+        onKnowMore={() => setView('about')}
       />
     );
   }
@@ -426,6 +499,13 @@ function App() {
               <ArrowBack />
             </IconButton>
 
+            <Box
+              component="img"
+              src="/images/logo.jpg"
+              sx={{ height: 40, width: 40, borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }}
+              onClick={() => setSelectedProduct(null)}
+            />
+
             <Typography
               variant="h5"
               sx={{
@@ -436,7 +516,7 @@ function App() {
               }}
               onClick={() => setSelectedProduct(null)}
             >
-              Kuzhavi<span style={{ color: '#B38B00' }}>_Kids</span>
+              Kuzhavi<span style={{ color: '#E3A018' }}>_Kids</span>
             </Typography>
 
             {activeProduct && (
@@ -488,22 +568,66 @@ function App() {
           {/* Right Section - Actions and User */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {activeProduct && (
-              <Button
-                onClick={() => setView(view === 'shop' ? 'dashboard' : 'shop')}
+              <IconButton
+                onClick={() => setView('favorites')}
                 sx={{
                   color: '#4C0013',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  fontSize: '14px',
-                  px: 2,
+                  mr: 1,
                   '&:hover': {
                     bgcolor: 'rgba(76, 0, 19, 0.05)',
                   }
                 }}
               >
-                {view === 'shop' ? 'My Orders' : 'Back to Shop'}
-              </Button>
+                <FavoriteBorder />
+              </IconButton>
             )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <AnimatePresence>
+                {showSearch ? (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 280, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <TextField
+                      autoFocus
+                      placeholder="Search ethnic wear..."
+                      variant="standard"
+                      onBlur={() => setShowSearch(false)}
+                      InputProps={{
+                        disableUnderline: true,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Search sx={{ color: '#4C0013', opacity: 0.5 }} />
+                          </InputAdornment>
+                        ),
+                        sx: {
+                          bgcolor: 'rgba(76, 0, 19, 0.03)',
+                          px: 2,
+                          py: 1,
+                          borderRadius: '50px',
+                          fontSize: '13px',
+                          width: '100%',
+                          border: `1px solid rgba(76, 0, 19, 0.1)`,
+                        }
+                      }}
+                    />
+                  </motion.div>
+                ) : (
+                  <IconButton onClick={() => setShowSearch(true)}>
+                    <Search sx={{ color: '#4C0013' }} />
+                  </IconButton>
+                )}
+              </AnimatePresence>
+            </Box>
+
+            <IconButton onClick={() => setIsCartOpen(true)}>
+              <Badge badgeContent={cart.length} color="error" sx={{ '& .MuiBadge-badge': { bgcolor: '#B38B00' } }}>
+                <ShoppingBagOutlined sx={{ color: '#4C0013' }} />
+              </Badge>
+            </IconButton>
 
             <Divider
               orientation="vertical"
@@ -571,6 +695,13 @@ function App() {
 
       {view === 'dashboard' ? (
         <Dashboard user={user} onBack={() => setView('shop')} />
+      ) : view === 'favorites' ? (
+        <Favorites
+          favorites={favorites}
+          onBack={() => setView('shop')}
+          onRemove={handleRemoveFavorite}
+          onMoveToBag={handleMoveToBag}
+        />
       ) : (
         <div className="app-body">
           {/* Left: Image/Scene Area */}
@@ -678,6 +809,7 @@ function App() {
             onApplyFilters={handleApplyFilters}
             isGeneratingProductImage={isGeneratingProductImage}
             cartCount={cart.length}
+            onAddToFavorites={addToFavorites}
           />
         </div>
       )}
@@ -728,6 +860,30 @@ function App() {
           }}
         >
           Added to cart successfully! 🎉
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={showAddToFavSuccess}
+        autoHideDuration={2000}
+        onClose={() => setShowAddToFavSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ mt: 8 }}
+      >
+        <Alert
+          onClose={() => setShowAddToFavSuccess(false)}
+          severity="success"
+          variant="filled"
+          sx={{
+            bgcolor: '#B38B00',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '14px',
+            boxShadow: '0 4px 12px rgba(179, 139, 0, 0.4)',
+            '& .MuiAlert-icon': { color: 'white' },
+          }}
+        >
+          Saved to Favourites!
         </Alert>
       </Snackbar>
 

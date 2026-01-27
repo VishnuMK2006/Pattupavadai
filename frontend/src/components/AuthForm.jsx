@@ -11,13 +11,13 @@ import {
   InputAdornment,
   IconButton as MuiIconButton,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
 import { FcGoogle } from "react-icons/fc";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export default function AuthForm({ onAuthSuccess }) {
+export default function AuthForm({ onAuthSuccess, onClose }) {
   const [step, setStep] = useState(1); // 1: email, 2: password/signup details
   const [mode, setMode] = useState("login"); // "login" or "signup"
   const [error, setError] = useState("");
@@ -193,62 +193,81 @@ export default function AuthForm({ onAuthSuccess }) {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            position: 'relative'
           }}
         >
+          {onClose && (
+            <MuiIconButton
+              onClick={onClose}
+              sx={{
+                position: 'absolute',
+                top: -10,
+                right: -20,
+                color: '#4C0013',
+                bgcolor: 'rgba(76, 0, 19, 0.05)',
+                '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.1)' }
+              }}
+            >
+              <Close sx={{ fontSize: 20 }} />
+            </MuiIconButton>
+          )}
+
           {/* Logo */}
           <Box
             sx={{
-              mb: 3,
+              mb: 5,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
+            <Box
+              component="img"
+              src="/images/logo.jpg"
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                mr: 2,
+                boxShadow: '0 4px 10px rgba(76, 0, 19, 0.1)'
+              }}
+            />
             <Typography
               sx={{
                 fontSize: 32,
-                fontWeight: 700,
-                color: "#111111",
-                fontFamily: "Arial, sans-serif",
+                fontWeight: 900,
+                color: "#4C0013",
+                fontFamily: '"Playfair Display", serif',
                 letterSpacing: "-1px",
               }}
             >
-              Kuzhavi_Kids
+              Kuzhavi<span style={{ color: '#E3A018' }}>_Kids</span>
             </Typography>
-            <Box
-              component="span"
-              sx={{
-                fontSize: 28,
-                color: "#FF9900",
-                ml: 0.5,
-                fontWeight: 400,
-              }}
-            >
-              .in
-            </Box>
           </Box>
 
           {/* Form Card */}
           <Box
             sx={{
               width: "100%",
-              border: "1px solid #DDDDDD",
-              borderRadius: "4px",
-              p: "20px 26px",
+              borderRadius: "32px",
+              p: "40px 30px",
               bgcolor: "#FFFFFF",
+              boxShadow: '0 20px 60px rgba(76, 0, 19, 0.05)',
+              border: '1px solid rgba(76, 0, 19, 0.05)'
             }}
           >
             <Typography
               variant="h5"
               sx={{
-                fontSize: "28px",
-                fontWeight: 400,
-                color: "#111111",
-                mb: 2,
-                fontFamily: "Arial, sans-serif",
+                fontSize: "24px",
+                fontWeight: 800,
+                color: "#4C0013",
+                mb: 3,
+                fontFamily: '"Playfair Display", serif',
+                textAlign: 'center'
               }}
             >
-              Sign in or create account
+              Welcome Back
             </Typography>
 
             <Box component="form" onSubmit={(e) => { e.preventDefault(); handleContinue(); }}>
@@ -269,29 +288,28 @@ export default function AuthForm({ onAuthSuccess }) {
                 type="text"
                 value={form.email}
                 onChange={handleChange("email")}
-                placeholder=""
+                placeholder="Email or Mobile Number"
                 autoFocus
                 sx={{
-                  mb: 2,
+                  mb: 3,
                   "& .MuiOutlinedInput-root": {
-                    fontSize: "13px",
-                    bgcolor: "#FFFFFF",
-                    fontFamily: "Arial, sans-serif",
+                    fontSize: "14px",
+                    bgcolor: "#FFFDF5",
+                    fontFamily: '"Outfit", sans-serif',
                     "& fieldset": {
-                      borderColor: "#888C8C",
-                      borderRadius: "4px",
+                      borderColor: "rgba(76, 0, 19, 0.1)",
+                      borderRadius: "16px",
                     },
                     "&:hover fieldset": {
-                      borderColor: "#FF9900",
+                      borderColor: "#005F60",
                     },
                     "&.Mui-focused fieldset": {
-                      borderColor: "#FF9900",
-                      borderWidth: "1px",
-                      boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)",
+                      borderColor: "#005F60",
+                      borderWidth: "1.5px",
                     },
                   },
                   "& .MuiOutlinedInput-input": {
-                    padding: "7px 10px",
+                    padding: "12px 16px",
                   },
                 }}
               />
@@ -320,19 +338,18 @@ export default function AuthForm({ onAuthSuccess }) {
                 fullWidth
                 variant="contained"
                 sx={{
-                  bgcolor: "#FF9900",
-                  color: "#111111",
+                  bgcolor: "#4C0013",
+                  color: "#FFFFFF",
                   textTransform: "none",
-                  fontSize: "13px",
-                  fontWeight: 400,
-                  py: "6px",
-                  borderRadius: "8px",
-                  boxShadow: "none",
-                  border: "1px solid #E77600",
-                  fontFamily: "Arial, sans-serif",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  py: "12px",
+                  borderRadius: "50px",
+                  boxShadow: "0 10px 20px rgba(76, 0, 19, 0.2)",
+                  fontFamily: '"Outfit", sans-serif',
                   "&:hover": {
-                    bgcolor: "#F08804",
-                    boxShadow: "none",
+                    bgcolor: "#1A0006",
+                    boxShadow: "0 15px 30px rgba(76, 0, 19, 0.3)",
                   },
                 }}
               >
@@ -356,78 +373,46 @@ export default function AuthForm({ onAuthSuccess }) {
               <Typography
                 sx={{
                   fontSize: "11px",
-                  color: "#111111",
-                  mt: 2,
-                  lineHeight: 1.4,
-                  fontFamily: "Arial, sans-serif",
+                  color: "#666",
+                  mt: 3,
+                  textAlign: 'center',
+                  fontFamily: '"Outfit", sans-serif',
                 }}
               >
-                By continuing, you agree to Kuzhavi_Kids's{" "}
+                Don't have an account?{" "}
                 <Link
-                  href="#"
+                  component="button"
+                  type="button"
+                  onClick={() => {
+                    setMode("signup");
+                    setStep(2);
+                    setError("");
+                  }}
                   sx={{
-                    color: "#146EB4",
+                    color: "#B38B00",
+                    fontWeight: 800,
                     textDecoration: "none",
-                    "&:hover": { color: "#FF9900", textDecoration: "underline" },
+                    fontSize: "12px",
+                    "&:hover": { textDecoration: "underline" },
                   }}
                 >
-                  Conditions of Use
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="#"
-                  sx={{
-                    color: "#146EB4",
-                    textDecoration: "none",
-                    "&:hover": { color: "#FF9900", textDecoration: "underline" },
-                  }}
-                >
-                  Privacy Notice
+                  SIGN UP NOW
                 </Link>
-                .
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "10px",
+                  color: "rgba(0,0,0,0.4)",
+                  mt: 4,
+                  lineHeight: 1.4,
+                  textAlign: 'center',
+                  fontFamily: '"Outfit", sans-serif',
+                }}
+              >
+                By continuing, you agree to Kuzhavi Kids's Conditions of Use and Privacy Notice.
               </Typography>
             </Box>
-          </Box>
-
-          {/* New to Kuzhavi Kids? */}
-          <Box
-            sx={{
-              width: "100%",
-              mt: 3,
-              textAlign: "center",
-            }}
-          >
-            <Divider sx={{ mb: 2 }}>
-              <Typography sx={{ fontSize: "12px", color: "#767676" }}>New to Kuzhavi Kids?</Typography>
-            </Divider>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => {
-                setMode("signup");
-                setStep(2);
-                setError("");
-              }}
-              sx={{
-                bgcolor: "#f0f2f2",
-                color: "#111111",
-                textTransform: "none",
-                fontSize: "13px",
-                fontWeight: 400,
-                py: "6px",
-                borderRadius: "8px",
-                boxShadow: "none",
-                border: "1px solid #D5D9D9",
-                fontFamily: "Arial, sans-serif",
-                "&:hover": {
-                  bgcolor: "#e7e9e9",
-                  borderColor: "#adb1b1",
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Create your Kuzhavi Kids account
-            </Button>
           </Box>
         </Box>
       </Box>
@@ -441,21 +426,42 @@ export default function AuthForm({ onAuthSuccess }) {
     <Box
       sx={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         bgcolor: "#FFFFFF",
-        p: 3,
+        p: { xs: 2, md: 4 },
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        scrollbarWidth: 'none',
+        '&::-webkit-scrollbar': { display: 'none' }
       }}
     >
       <Box
         sx={{
           width: "100%",
-          maxWidth: 350,
+          maxWidth: 380,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          position: 'relative'
         }}
       >
+        {onClose && (
+          <MuiIconButton
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              top: -10,
+              right: -10,
+              color: '#4C0013',
+              bgcolor: 'rgba(76, 0, 19, 0.05)',
+              '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.1)' }
+            }}
+          >
+            <Close sx={{ fontSize: 20 }} />
+          </MuiIconButton>
+        )}
         {/* Logo */}
         <Box
           sx={{
@@ -465,51 +471,53 @@ export default function AuthForm({ onAuthSuccess }) {
             justifyContent: "center",
           }}
         >
+          <Box
+            component="img"
+            src="/images/logo.jpg"
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              mr: 1.5,
+              boxShadow: '0 4px 10px rgba(76, 0, 19, 0.1)'
+            }}
+          />
           <Typography
             sx={{
-              fontSize: 32,
-              fontWeight: 700,
-              color: "#111111",
-              fontFamily: "Arial, sans-serif",
+              fontSize: 28,
+              fontWeight: 900,
+              color: "#4C0013",
+              fontFamily: '"Playfair Display", serif',
               letterSpacing: "-1px",
             }}
           >
-            Kuzhavi_Kids
+            Kuzhavi<span style={{ color: '#E3A018' }}>_Kids</span>
           </Typography>
-          <Box
-            component="span"
-            sx={{
-              fontSize: 28,
-              color: "#FF9900",
-              ml: 0.5,
-              fontWeight: 400,
-            }}
-          >
-            .in
-          </Box>
         </Box>
 
         {/* Form Card */}
         <Box
           sx={{
             width: "100%",
-            border: "1px solid #DDDDDD",
-            borderRadius: "4px",
-            p: "20px 26px",
+            borderRadius: "32px",
+            p: "30px 25px",
             bgcolor: "#FFFFFF",
+            boxShadow: '0 20px 60px rgba(76, 0, 19, 0.05)',
+            border: '1px solid rgba(76, 0, 19, 0.05)'
           }}
         >
           <Typography
             variant="h5"
             sx={{
               fontSize: "24px",
-              fontWeight: 700,
-              color: "#111111",
-              mb: 1,
-              fontFamily: "Arial, sans-serif",
+              fontWeight: 800,
+              color: "#4C0013",
+              mb: 3,
+              fontFamily: '"Playfair Display", serif',
+              textAlign: 'center'
             }}
           >
-            {mode === "login" ? "Sign in" : "Create account"}
+            {mode === "login" ? "Sign In" : "Create Account"}
           </Typography>
 
           {mode === "login" && (
@@ -521,16 +529,8 @@ export default function AuthForm({ onAuthSuccess }) {
           <Box component="form" onSubmit={handleSubmit}>
             {mode === "signup" && (
               <>
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#111111",
-                    mb: "4px",
-                    fontFamily: "Arial, sans-serif",
-                  }}
-                >
-                  Your name
+                <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
+                  Your Name
                 </Typography>
                 <TextField
                   fullWidth
@@ -539,90 +539,44 @@ export default function AuthForm({ onAuthSuccess }) {
                   placeholder="First and last name"
                   required
                   sx={{
-                    mb: 1.5,
+                    mb: 2,
                     "& .MuiOutlinedInput-root": {
-                      fontSize: "13px",
-                      bgcolor: "#FFFFFF",
-                      fontFamily: "Arial, sans-serif",
-                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
-                      "&:hover fieldset": { borderColor: "#FF9900" },
-                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
+                      fontSize: "14px",
+                      bgcolor: "#FFFDF5",
+                      fontFamily: '"Outfit", sans-serif',
+                      "& fieldset": { borderColor: "rgba(76, 0, 19, 0.1)", borderRadius: "16px" },
+                      "&:hover fieldset": { borderColor: "#B38B00" },
+                      "&.Mui-focused fieldset": { borderColor: "#B38B00", borderWidth: "1.5px" },
                     },
-                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
+                    "& .MuiOutlinedInput-input": { padding: "12px 16px" },
                   }}
                 />
 
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#111111",
-                    mb: "4px",
-                    fontFamily: "Arial, sans-serif",
-                  }}
-                >
-                  Email or mobile number
-                </Typography>
-                <TextField
-                  fullWidth
-                  value={form.email}
-                  onChange={handleChange("email")}
-                  placeholder="Email or mobile phone number"
-                  required
-                  sx={{
-                    mb: 1.5,
-                    "& .MuiOutlinedInput-root": {
-                      fontSize: "13px",
-                      bgcolor: "#FFFFFF",
-                      fontFamily: "Arial, sans-serif",
-                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
-                      "&:hover fieldset": { borderColor: "#FF9900" },
-                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
-                    },
-                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
-                  }}
-                />
-
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#111111",
-                    mb: "4px",
-                    fontFamily: "Arial, sans-serif",
-                  }}
-                >
-                  Contact number
+                <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
+                  Contact Number
                 </Typography>
                 <TextField
                   fullWidth
                   value={form.contactDetails}
                   onChange={handleChange("contactDetails")}
-                  placeholder="Alternative mobile number (optional)"
+                  placeholder="Mobile number for delivery"
+                  required
                   sx={{
-                    mb: 1.5,
+                    mb: 2,
                     "& .MuiOutlinedInput-root": {
-                      fontSize: "13px",
-                      bgcolor: "#FFFFFF",
-                      fontFamily: "Arial, sans-serif",
-                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
-                      "&:hover fieldset": { borderColor: "#FF9900" },
-                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
+                      fontSize: "14px",
+                      bgcolor: "#FFFDF5",
+                      fontFamily: '"Outfit", sans-serif',
+                      "& fieldset": { borderColor: "rgba(76, 0, 19, 0.1)", borderRadius: "16px" },
+                      "&:hover fieldset": { borderColor: "#B38B00" },
+                      "&.Mui-focused fieldset": { borderColor: "#B38B00", borderWidth: "1.5px" },
                     },
-                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
+                    "& .MuiOutlinedInput-input": { padding: "12px 16px" },
                   }}
                 />
 
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#111111",
-                    mb: "4px",
-                    fontFamily: "Arial, sans-serif",
-                  }}
-                >
-                  Shipping address
+                <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
+                  Shipping Address
                 </Typography>
                 <TextField
                   fullWidth
@@ -630,33 +584,25 @@ export default function AuthForm({ onAuthSuccess }) {
                   rows={2}
                   value={form.shippingAddress}
                   onChange={handleChange("shippingAddress")}
-                  placeholder="Enter your complete address for delivery"
+                  placeholder="Complete address for courier"
                   required
                   sx={{
-                    mb: 1.5,
+                    mb: 2,
                     "& .MuiOutlinedInput-root": {
-                      fontSize: "13px",
-                      bgcolor: "#FFFFFF",
-                      fontFamily: "Arial, sans-serif",
-                      "& fieldset": { borderColor: "#888C8C", borderRadius: "4px" },
-                      "&:hover fieldset": { borderColor: "#FF9900" },
-                      "&.Mui-focused fieldset": { borderColor: "#FF9900", borderWidth: "1px", boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)" },
+                      fontSize: "14px",
+                      bgcolor: "#FFFDF5",
+                      fontFamily: '"Outfit", sans-serif',
+                      "& fieldset": { borderColor: "rgba(76, 0, 19, 0.1)", borderRadius: "16px" },
+                      "&:hover fieldset": { borderColor: "#B38B00" },
+                      "&.Mui-focused fieldset": { borderColor: "#B38B00", borderWidth: "1.5px" },
                     },
-                    "& .MuiOutlinedInput-input": { padding: "7px 10px" },
+                    "& .MuiOutlinedInput-input": { padding: "12px 16px" },
                   }}
                 />
               </>
             )}
 
-            <Typography
-              sx={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "#111111",
-                mb: "4px",
-                fontFamily: "Arial, sans-serif",
-              }}
-            >
+            <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
               Password
             </Typography>
             <TextField
@@ -674,6 +620,7 @@ export default function AuthForm({ onAuthSuccess }) {
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       size="small"
+                      sx={{ color: '#4C0013' }}
                     >
                       {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
                     </MuiIconButton>
@@ -683,24 +630,23 @@ export default function AuthForm({ onAuthSuccess }) {
               sx={{
                 mb: 1,
                 "& .MuiOutlinedInput-root": {
-                  fontSize: "13px",
-                  bgcolor: "#FFFFFF",
-                  fontFamily: "Arial, sans-serif",
+                  fontSize: "14px",
+                  bgcolor: "#FFFDF5",
+                  fontFamily: '"Outfit", sans-serif',
                   "& fieldset": {
-                    borderColor: "#888C8C",
-                    borderRadius: "4px",
+                    borderColor: "rgba(76, 0, 19, 0.1)",
+                    borderRadius: "16px",
                   },
                   "&:hover fieldset": {
-                    borderColor: "#FF9900",
+                    borderColor: "#B38B00",
                   },
                   "&.Mui-focused fieldset": {
-                    borderColor: "#FF9900",
-                    borderWidth: "1px",
-                    boxShadow: "0 0 0 3px rgba(255, 153, 0, 0.15)",
+                    borderColor: "#B38B00",
+                    borderWidth: "1.5px",
                   },
                 },
                 "& .MuiOutlinedInput-input": {
-                  padding: "7px 10px",
+                  padding: "12px 16px",
                 },
               }}
             />
@@ -744,33 +690,32 @@ export default function AuthForm({ onAuthSuccess }) {
               variant="contained"
               disabled={loading}
               sx={{
-                bgcolor: "#FF9900",
-                color: "#111111",
+                bgcolor: "#4C0013",
+                color: "#FFFFFF",
                 textTransform: "none",
-                fontSize: "13px",
-                fontWeight: 400,
-                py: "6px",
+                fontSize: "15px",
+                fontWeight: 700,
+                py: "12px",
                 mt: 1,
-                borderRadius: "8px",
-                boxShadow: "none",
-                border: "1px solid #E77600",
-                fontFamily: "Arial, sans-serif",
+                borderRadius: "50px",
+                boxShadow: "0 10px 20px rgba(76, 0, 19, 0.2)",
+                fontFamily: '"Outfit", sans-serif',
                 "&:hover": {
-                  bgcolor: "#F08804",
-                  boxShadow: "none",
+                  bgcolor: "#1A0006",
+                  boxShadow: "0 15px 30px rgba(76, 0, 19, 0.3)",
                 },
                 "&:disabled": {
-                  bgcolor: "#F7CA00",
+                  bgcolor: "rgba(76, 0, 19, 0.1)",
                   color: "#666666",
                 },
               }}
             >
               {loading ? (
-                <CircularProgress size={16} sx={{ color: "#111111" }} />
+                <CircularProgress size={16} sx={{ color: "#FFFFFF" }} />
               ) : mode === "login" ? (
-                "Sign in"
+                "Sign In"
               ) : (
-                "Create your account"
+                "Create Account"
               )}
             </Button>
 
@@ -826,7 +771,7 @@ export default function AuthForm({ onAuthSuccess }) {
           </Box>
 
           {mode === "login" && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #E7E7E7" }}>
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Link
                 component="button"
                 type="button"
@@ -836,53 +781,49 @@ export default function AuthForm({ onAuthSuccess }) {
                   setError("");
                 }}
                 sx={{
-                  fontSize: "13px",
-                  color: "#146EB4",
+                  fontSize: "12px",
+                  color: "#B38B00",
+                  fontWeight: 800,
                   textDecoration: "none",
-                  fontFamily: "Arial, sans-serif",
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                  "&:hover": { color: "#FF9900", textDecoration: "underline" },
+                  fontFamily: '"Outfit", sans-serif',
+                  "&:hover": { textDecoration: "underline" },
                 }}
               >
-                -Back
+                ← BACK TO EMAIL
               </Link>
             </Box>
           )}
 
           {mode === "signup" && (
-            <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #E7E7E7", textAlign: "center" }}>
-              <Typography
+            <Typography
+              sx={{
+                fontSize: "11px",
+                color: "#666",
+                mt: 3,
+                textAlign: 'center',
+                fontFamily: '"Outfit", sans-serif',
+              }}
+            >
+              Already have an account?{" "}
+              <Link
+                component="button"
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setStep(1);
+                  setError("");
+                }}
                 sx={{
-                  fontSize: "13px",
-                  color: "#111111",
-                  fontFamily: "Arial, sans-serif",
+                  color: "#B38B00",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  fontSize: "12px",
+                  "&:hover": { textDecoration: "underline" },
                 }}
               >
-                Already have an account?{" "}
-                <Link
-                  component="button"
-                  type="button"
-                  onClick={() => {
-                    setMode("login");
-                    setStep(1);
-                    setError("");
-                  }}
-                  sx={{
-                    color: "#146EB4",
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    fontFamily: "Arial, sans-serif",
-                    background: "none",
-                    border: "none",
-                    "&:hover": { color: "#FF9900", textDecoration: "underline" },
-                  }}
-                >
-                  Sign in
-                </Link>
-              </Typography>
-            </Box>
+                SIGN IN
+              </Link>
+            </Typography>
           )}
         </Box>
       </Box>
