@@ -21,6 +21,7 @@ import {
 const luxuryColors = {
   maroon: '#4C0013',
   gold: '#B38B00',
+  mustard: '#E3A018',
   ivory: '#FFFDF5',
   text: '#2A000A',
   goldLight: '#D4AF37'
@@ -80,7 +81,7 @@ export default function CartDrawer({ open, onClose, cartItems, onRemoveItem, onC
               <Typography sx={{ fontSize: '20px', fontWeight: 800, color: luxuryColors.maroon, fontFamily: '"Playfair Display", serif', mb: 1 }}>
                 Your bag is empty
               </Typography>
-              <Button onClick={onClose} sx={{ color: luxuryColors.gold, fontWeight: 700 }}>CONTINUE SHOPPING</Button>
+              <Button onClick={onClose} startIcon={<Close />} sx={{ color: luxuryColors.gold, fontWeight: 700 }}>CONTINUE SHOPPING</Button>
             </Box>
           ) : (
             <Stack spacing={3}>
@@ -174,16 +175,16 @@ export default function CartDrawer({ open, onClose, cartItems, onRemoveItem, onC
               onClick={onCheckout}
               sx={{
                 py: 2.5,
-                bgcolor: luxuryColors.maroon,
+                bgcolor: '#4C0013',
                 borderRadius: '50px',
                 fontWeight: 800,
                 fontSize: '15px',
                 textTransform: 'none',
-                boxShadow: '0 10px 30px rgba(76, 0, 19, 0.2)',
-                '&:hover': { bgcolor: luxuryColors.dark }
+                boxShadow: '0 10px 40px rgba(76, 0, 19, 0.2)',
+                '&:hover': { bgcolor: '#1A0006' }
               }}
             >
-              PROCEED TO SECURE CHECKOUT
+              SECURE CHECKOUT
             </Button>
 
             <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, opacity: 0.5 }}>

@@ -23,6 +23,7 @@ import {
 const luxuryColors = {
   maroon: '#4C0013',
   gold: '#B38B00',
+  mustard: '#E3A018',
   ivory: '#FFFDF5',
   text: '#2A000A',
   goldLight: '#D4AF37'
@@ -174,14 +175,14 @@ function OrderCard({ order }) {
                   <Button
                     variant="contained"
                     sx={{
-                      bgcolor: luxuryColors.maroon,
+                      bgcolor: '#4C0013',
                       color: 'white',
                       textTransform: 'none',
                       fontSize: '12px',
                       fontWeight: 700,
                       px: 3,
                       borderRadius: '50px',
-                      '&:hover': { bgcolor: luxuryColors.dark }
+                      '&:hover': { bgcolor: '#1A0006' }
                     }}
                   >
                     Order Again

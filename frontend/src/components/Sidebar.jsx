@@ -17,13 +17,15 @@ import {
   Bolt,
   ViewInArOutlined,
   AutoFixHighOutlined,
-  ArrowForwardIos
+  ArrowForwardIos,
+  FavoriteBorder
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
 const luxuryColors = {
   maroon: '#4C0013',
   gold: '#B38B00',
+  mustard: '#E3A018',
   ivory: '#FFFDF5',
   text: '#2A000A',
   goldLight: '#D4AF37'
@@ -77,7 +79,7 @@ function DesignerControl({ label, options, value, onChange }) {
       <RadioGroup
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}
+        sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}
       >
         {options.map((opt) => (
           <FormControlLabel
@@ -89,19 +91,19 @@ function DesignerControl({ label, options, value, onChange }) {
                 sx={{
                   px: 2,
                   py: 1.5,
-                  borderRadius: '12px',
-                  border: '1px solid',
-                  borderColor: value === opt.id ? luxuryColors.maroon : 'rgba(0,0,0,0.05)',
-                  bgcolor: value === opt.id ? luxuryColors.maroon : 'white',
-                  color: value === opt.id ? 'white' : luxuryColors.text,
+                  borderRadius: '16px',
+                  border: '1.5px solid',
+                  borderColor: value === opt.id ? luxuryColors.maroon : 'rgba(76, 0, 19, 0.1)',
+                  bgcolor: value === opt.id ? 'rgba(76, 0, 19, 0.05)' : 'white',
+                  color: value === opt.id ? luxuryColors.maroon : 'rgba(42, 0, 10, 0.6)',
                   textAlign: 'center',
                   fontSize: '13px',
-                  fontWeight: 600,
-                  transition: '0.3s',
+                  fontWeight: 700,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   cursor: 'pointer',
                   '&:hover': {
-                    borderColor: luxuryColors.gold,
-                    boxShadow: '0 5px 15px rgba(0,0,0,0.05)'
+                    borderColor: luxuryColors.maroon,
+                    bgcolor: 'rgba(76, 0, 19, 0.02)'
                   }
                 }}
               >
@@ -135,6 +137,7 @@ export default function Sidebar({
   onToggle3DView,
   onApplyFilters,
   isGeneratingProductImage,
+  onAddToFavorites
 }) {
   return (
     <Box
@@ -231,6 +234,29 @@ export default function Sidebar({
           {isGeneratingProductImage ? 'Crafting Image...' : 'Apply Design Details'}
         </Button>
 
+        <Button
+          fullWidth
+          variant="outlined"
+          onClick={onAddToFavorites}
+          startIcon={<FavoriteBorder />}
+          sx={{
+            borderColor: luxuryColors.maroon,
+            color: luxuryColors.maroon,
+            py: 1.5,
+            borderRadius: '20px',
+            fontWeight: 800,
+            fontSize: '14px',
+            textTransform: 'none',
+            mb: 2,
+            '&:hover': {
+              bgcolor: 'rgba(76, 0, 19, 0.05)',
+              borderColor: luxuryColors.maroon
+            }
+          }}
+        >
+          Add to Favourites
+        </Button>
+
         <Stack direction="row" spacing={2}>
           <Button
             onClick={onToggle3DView}
@@ -238,27 +264,28 @@ export default function Sidebar({
               flex: 1,
               bgcolor: 'white',
               color: luxuryColors.maroon,
-              border: '1px solid #DDD',
+              border: `2px solid ${luxuryColors.maroon}`,
               py: 2,
-              borderRadius: '15px',
-              fontWeight: 700,
+              borderRadius: '50px',
+              fontWeight: 800,
               textTransform: 'none',
-              '&:hover': { bgcolor: luxuryColors.ivory }
+              '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.05)' }
             }}
           >
-            {show3DView ? 'Exit 3D' : 'Pre-visualize (3D)'}
+            {show3DView ? 'Exit 3D' : 'View in 3D'}
           </Button>
           <Button
             onClick={onAddToCart}
             sx={{
               flex: 1,
-              bgcolor: luxuryColors.gold,
+              bgcolor: luxuryColors.mustard,
               color: 'white',
               py: 2,
-              borderRadius: '15px',
-              fontWeight: 700,
+              borderRadius: '50px',
+              fontWeight: 800,
               textTransform: 'none',
-              '&:hover': { bgcolor: luxuryColors.goldLight }
+              boxShadow: '0 10px 20px rgba(227, 160, 24, 0.2)',
+              '&:hover': { bgcolor: '#C98D15', boxShadow: '0 15px 30px rgba(227, 160, 24, 0.3)' }
             }}
           >
             Add to Bag

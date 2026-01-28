@@ -62,9 +62,9 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
 
   if (paymentSuccess) {
     return (
-      <Dialog 
-        open={open} 
-        maxWidth="sm" 
+      <Dialog
+        open={open}
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
@@ -73,19 +73,20 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
         }}
       >
         <DialogContent>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            py: 4,
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            py: 6,
             gap: 2,
+            bgcolor: '#FFFDF5'
           }}>
             <CheckCircleOutline sx={{ fontSize: 80, color: '#2ecc71' }} />
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#111111' }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#4C0013', fontFamily: '"Playfair Display", serif' }}>
               Payment Successful!
             </Typography>
-            <Typography sx={{ fontSize: '14px', color: '#666666', textAlign: 'center' }}>
-              Your order has been placed successfully
+            <Typography sx={{ fontSize: '15px', color: '#666', textAlign: 'center', fontFamily: '"Outfit", sans-serif' }}>
+              Your order has been placed successfully. 🎉
             </Typography>
           </Box>
         </DialogContent>
@@ -94,10 +95,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
   }
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
@@ -111,8 +112,8 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
           {/* Left Side - Payment Methods */}
           <Box sx={{ flex: 1, bgcolor: '#FFFFFF', overflowY: 'auto' }}>
             {/* Header */}
-            <Box sx={{ 
-              p: 2, 
+            <Box sx={{
+              p: 2,
               borderBottom: '1px solid #E0E0E0',
               display: 'flex',
               alignItems: 'center',
@@ -122,16 +123,16 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
               top: 0,
               zIndex: 1,
             }}>
-              <IconButton onClick={onClose} sx={{ color: '#111111' }}>
+              <IconButton onClick={onClose} sx={{ color: '#4C0013' }}>
                 <ArrowBack />
               </IconButton>
-              <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#111111' }}>
-                Complete Payment
+              <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#4C0013', fontFamily: '"Playfair Display", serif' }}>
+                Complete Your Purchase
               </Typography>
               <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Lock sx={{ fontSize: 16, color: '#2ecc71' }} />
-                <Typography sx={{ fontSize: '12px', color: '#2ecc71', fontWeight: 600 }}>
-                  100% Secure
+                <Typography sx={{ fontSize: '12px', color: '#2ecc71', fontWeight: 700, letterSpacing: '1px' }}>
+                  SECURE
                 </Typography>
               </Box>
             </Box>
@@ -140,10 +141,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
             <Box sx={{ p: 2 }}>
               <RadioGroup value={selectedMethod} onChange={(e) => setSelectedMethod(e.target.value)}>
                 {/* UPI */}
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
-                    mb: 1.5, 
+                  sx={{
+                    mb: 1.5,
                     border: selectedMethod === 'upi' ? '2px solid #2874F0' : '1px solid #E0E0E0',
                     borderRadius: 1,
                     overflow: 'hidden',
@@ -151,36 +152,36 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                 >
                   <FormControlLabel
                     value="upi"
-                    control={<Radio sx={{ color: '#CCCCCC', '&.Mui-checked': { color: '#2874F0' } }} />}
+                    control={<Radio sx={{ color: 'rgba(76, 0, 19, 0.2)', '&.Mui-checked': { color: '#4C0013' } }} />}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-                        <AccountBalanceWallet sx={{ color: '#2874F0', fontSize: 24 }} />
+                        <AccountBalanceWallet sx={{ color: '#4C0013', fontSize: 24 }} />
                         <Box>
-                          <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#111111' }}>
-                            UPI
+                          <Typography sx={{ fontSize: '14px', fontWeight: 800, color: '#4C0013', fontFamily: '"Outfit", sans-serif' }}>
+                            UPI Payment
                           </Typography>
                           <Typography sx={{ fontSize: '12px', color: '#666666' }}>
-                            Pay by any UPI app
+                            Single click payment using any UPI app
                           </Typography>
-                          <Typography sx={{ fontSize: '12px', color: '#2ecc71', fontWeight: 600 }}>
-                            Get upto ₹20 cashback • 4 offers available
+                          <Typography sx={{ fontSize: '12px', color: '#2ecc71', fontWeight: 700 }}>
+                            Up to ₹250 instant discount • 4 offers
                           </Typography>
                         </Box>
                       </Box>
                     }
                     sx={{ m: 0, p: 2, width: '100%' }}
                   />
-                  
+
                   <Collapse in={selectedMethod === 'upi'}>
                     <Box sx={{ px: 2, pb: 2, borderTop: '1px solid #F2F2F2' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, mt: 2 }}>
                         <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#111111' }}>
                           Add new UPI ID
                         </Typography>
-                        <Typography 
-                          sx={{ 
-                            fontSize: '12px', 
-                            color: '#2874F0', 
+                        <Typography
+                          sx={{
+                            fontSize: '12px',
+                            color: '#2874F0',
                             cursor: 'pointer',
                             '&:hover': { textDecoration: 'underline' }
                           }}
@@ -188,7 +189,7 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                           How to find?
                         </Typography>
                       </Box>
-                      
+
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <TextField
                           placeholder="Enter your UPI ID"
@@ -206,16 +207,15 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                         <Button
                           variant="contained"
                           sx={{
-                            bgcolor: '#2874F0',
+                            bgcolor: '#4C0013',
                             color: '#FFFFFF',
                             textTransform: 'none',
                             fontSize: '14px',
-                            fontWeight: 600,
+                            fontWeight: 700,
                             px: 3,
-                            boxShadow: 'none',
+                            borderRadius: '12px',
                             '&:hover': {
-                              bgcolor: '#1e60c7',
-                              boxShadow: 'none',
+                              bgcolor: '#1A0006',
                             },
                           }}
                         >
@@ -229,34 +229,34 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                         disabled={!upiId || isProcessing}
                         onClick={handlePayment}
                         sx={{
-                          bgcolor: '#666666',
+                          bgcolor: '#4C0013',
                           color: '#FFFFFF',
                           textTransform: 'none',
-                          fontSize: '14px',
-                          fontWeight: 600,
+                          fontSize: '15px',
+                          fontWeight: 800,
                           py: 1.5,
-                          boxShadow: 'none',
+                          borderRadius: '50px',
+                          boxShadow: '0 10px 20px rgba(76, 0, 19, 0.2)',
                           '&:hover': {
-                            bgcolor: '#555555',
-                            boxShadow: 'none',
+                            bgcolor: '#1A0006',
                           },
                           '&:disabled': {
-                            bgcolor: '#CCCCCC',
+                            bgcolor: 'rgba(76, 0, 19, 0.1)',
                             color: '#999999',
                           },
                         }}
                       >
-                        {isProcessing ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString()}`}
+                        {isProcessing ? 'Processing...' : `Pay Securely ₹${totalAmount.toLocaleString()}`}
                       </Button>
                     </Box>
                   </Collapse>
                 </Paper>
 
                 {/* Credit/Debit Card */}
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
-                    mb: 1.5, 
+                  sx={{
+                    mb: 1.5,
                     border: selectedMethod === 'card' ? '2px solid #2874F0' : '1px solid #E0E0E0',
                     borderRadius: 1,
                   }}
@@ -285,10 +285,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                 </Paper>
 
                 {/* EMI */}
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
-                    mb: 1.5, 
+                  sx={{
+                    mb: 1.5,
                     border: selectedMethod === 'emi' ? '2px solid #2874F0' : '1px solid #E0E0E0',
                     borderRadius: 1,
                   }}
@@ -314,10 +314,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                 </Paper>
 
                 {/* Cash on Delivery */}
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
-                    mb: 1.5, 
+                  sx={{
+                    mb: 1.5,
                     border: selectedMethod === 'cod' ? '2px solid #2874F0' : '1px solid #E0E0E0',
                     borderRadius: 1,
                   }}
@@ -340,10 +340,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
                 </Paper>
 
                 {/* Gift Card */}
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
-                    mb: 1.5, 
+                  sx={{
+                    mb: 1.5,
                     border: selectedMethod === 'gift' ? '2px solid #2874F0' : '1px solid #E0E0E0',
                     borderRadius: 1,
                   }}
@@ -378,10 +378,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
             </Typography>
 
             {/* Fees Section */}
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 mb: 1,
@@ -413,10 +413,10 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
             </Collapse>
 
             {/* Discounts Section */}
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 mb: 2,
@@ -451,16 +451,16 @@ export default function PaymentModal({ open, onClose, totalAmount, onSuccess }) 
 
             {/* Total Amount */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-              <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#2874F0' }}>
-                Total Amount
+              <Typography sx={{ fontSize: '18px', fontWeight: 800, color: '#4C0013', fontFamily: '"Playfair Display", serif' }}>
+                Total Payable
               </Typography>
-              <Typography sx={{ fontSize: '20px', fontWeight: 700, color: '#2874F0' }}>
+              <Typography sx={{ fontSize: '24px', fontWeight: 900, color: '#4C0013' }}>
                 ₹{totalAmount.toLocaleString()}
               </Typography>
             </Box>
 
             {/* Discount Banner */}
-            <Box sx={{ 
+            <Box sx={{
               bgcolor: '#E8F5E9',
               border: '1px solid #2ecc71',
               borderRadius: 1,

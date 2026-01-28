@@ -510,7 +510,7 @@ async def generate_preview_image(payload: PreviewRequest) -> Dict[str, str]:
     #     print("Key nahi")
     #     raise HTTPException(status_code=500, detail="OpenAI API key not configured")
     #api here
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     prompt = f"""
     A high-quality, photorealistic fashion design illustration of a {payload.product_name}.
