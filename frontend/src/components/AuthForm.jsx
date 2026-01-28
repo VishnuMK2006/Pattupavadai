@@ -301,10 +301,10 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
                       borderRadius: "16px",
                     },
                     "&:hover fieldset": {
-                      borderColor: "#005F60",
+                      borderColor: "#B38B00",
                     },
                     "&.Mui-focused fieldset": {
-                      borderColor: "#005F60",
+                      borderColor: "#B38B00",
                       borderWidth: "1.5px",
                     },
                   },
