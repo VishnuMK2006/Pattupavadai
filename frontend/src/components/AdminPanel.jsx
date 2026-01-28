@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Box,
     Typography,
@@ -21,6 +21,10 @@ import {
     Toolbar,
     Container,
     Alert,
+    RadioGroup,
+    FormControlLabel,
+    Radio,
+    LinearProgress,
 } from '@mui/material';
 import {
     CloudUpload,
@@ -44,6 +48,14 @@ const AdminPanel = ({ onSignOut }) => {
     const [error, setError] = useState(null);
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [knowledgeFile, setKnowledgeFile] = useState(null);
+    const [knowledgeMode, setKnowledgeMode] = useState('new');
+    const [knowledgeStatus, setKnowledgeStatus] = useState(null);
+    const [knowledgeUploading, setKnowledgeUploading] = useState(false);
+    const [knowledgeProgress, setKnowledgeProgress] = useState(0);
+    const [knowledgeElapsed, setKnowledgeElapsed] = useState(0);
+    const [knowledgeRemaining, setKnowledgeRemaining] = useState(null);
+    const uploadStartRef = useRef(null);
 
     useEffect(() => {
         if (tabValue === 1) {
@@ -63,6 +75,103 @@ const AdminPanel = ({ onSignOut }) => {
             setError(err.message);
         } finally {
             setLoadingOrders(false);
+        }
+    };
+
+    const formatDuration = (seconds) => {
+        if (seconds === null || !Number.isFinite(seconds)) return '—';
+        const s = Math.max(0, seconds);
+        if (s < 1) return '<1s';
+        if (s < 60) return `${s < 10 ? s.toFixed(1) : Math.round(s)}s`;
+        const minutes = Math.floor(s / 60);
+        const remSeconds = Math.round(s % 60);
+        if (minutes < 60) return `${minutes}m ${remSeconds}s`;
+        const hours = Math.floor(minutes / 60);
+        const remMinutes = minutes % 60;
+        return `${hours}h ${remMinutes}m`;
+    };
+
+    const handleKnowledgeFileChange = (event) => {
+        const file = event.target.files?.[0];
+        setKnowledgeFile(file || null);
+        setKnowledgeStatus(null);
+    };
+
+    const resetUploadMetrics = () => {
+        setKnowledgeProgress(0);
+        setKnowledgeElapsed(0);
+        setKnowledgeRemaining(null);
+        uploadStartRef.current = null;
+    };
+
+    const handleKnowledgeUpload = async () => {
+        if (!knowledgeFile) {
+            setKnowledgeStatus({ type: 'error', message: 'Select a PDF before uploading.' });
+            return;
+        }
+        const formData = new FormData();
+        formData.append('mode', knowledgeMode);
+        formData.append('file', knowledgeFile);
+
+        setKnowledgeUploading(true);
+        setKnowledgeStatus(null);
+        resetUploadMetrics();
+        uploadStartRef.current = performance.now();
+
+        try {
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${API_BASE}/admin/knowledge/upload`);
+
+                xhr.upload.onprogress = (event) => {
+                    if (!event.lengthComputable) {
+                        setKnowledgeProgress(0);
+                        setKnowledgeRemaining(null);
+                        return;
+                    }
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    const elapsedMs = performance.now() - (uploadStartRef.current || performance.now());
+                    const elapsedSec = Math.max(elapsedMs / 1000, 0.001);
+                    setKnowledgeProgress(percent);
+                    setKnowledgeElapsed(elapsedSec);
+
+                    const bytesPerSec = event.loaded / elapsedSec;
+                    const remainingBytes = Math.max(event.total - event.loaded, 0);
+                    const remainingSec = remainingBytes / Math.max(bytesPerSec, 0.001);
+                    setKnowledgeRemaining(remainingSec);
+                };
+
+                xhr.onload = () => {
+                    try {
+                        const data = JSON.parse(xhr.responseText || '{}');
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            setKnowledgeProgress(100);
+                            setKnowledgeRemaining(0);
+                            setKnowledgeStatus({
+                                type: 'success',
+                                message: `Ingested ${data.chunks} chunks (${data.mode === 'new' ? 'New DB' : 'Append'})`,
+                            });
+                            setKnowledgeFile(null);
+                            resolve(null);
+                        } else {
+                            throw new Error(data.detail || 'Ingestion failed');
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+
+                xhr.onerror = () => {
+                    reject(new Error('Network error while uploading PDF'));
+                };
+
+                xhr.send(formData);
+            });
+        } catch (err) {
+            setKnowledgeStatus({ type: 'error', message: err.message });
+        } finally {
+            setKnowledgeUploading(false);
+            resetUploadMetrics();
         }
     };
 
@@ -216,6 +325,107 @@ const AdminPanel = ({ onSignOut }) => {
             </AppBar>
 
             <Container maxWidth="xl" sx={{ py: 4 }}>
+
+                <Paper
+                    elevation={0}
+                    sx={{
+                        mb: 3,
+                        bgcolor: '#ffffff',
+                        border: '1px solid #e8eaed',
+                        borderRadius: 3,
+                        p: 3,
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', mb: 1 }}>
+                                Knowledge Base Upload
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6c757d', mb: 2 }}>
+                                Upload a PDF to refresh the chatbot knowledge store. Use <strong>New DB</strong> to rebuild the
+                                collection or <strong>Append</strong> to add to the existing vectors.
+                            </Typography>
+                            {knowledgeStatus && (
+                                <Alert severity={knowledgeStatus.type} sx={{ fontSize: '13px', mt: 1 }}>
+                                    {knowledgeStatus.message}
+                                </Alert>
+                            )}
+                            {knowledgeUploading && (
+                                <Box sx={{ mt: 2 }}>
+                                    <LinearProgress
+                                        variant={knowledgeProgress > 0 ? 'determinate' : 'indeterminate'}
+                                        value={knowledgeProgress > 0 ? knowledgeProgress : undefined}
+                                    />
+                                    <Typography sx={{ fontSize: '12px', color: '#6c757d', mt: 1 }}>
+                                        {knowledgeProgress > 0 ? `${knowledgeProgress}% uploaded` : 'Uploading...'} · Elapsed {formatDuration(knowledgeElapsed)}
+                                        {knowledgeRemaining !== null && Number.isFinite(knowledgeRemaining) && knowledgeProgress < 100 && (
+                                            <> · Remaining {formatDuration(knowledgeRemaining)}</>
+                                        )}
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <input
+                                id="knowledge-upload"
+                                type="file"
+                                accept="application/pdf"
+                                style={{ display: 'none' }}
+                                onChange={handleKnowledgeFileChange}
+                            />
+                            <label htmlFor="knowledge-upload" style={{ width: '100%' }}>
+                                <Box
+                                    sx={{
+                                        border: '2px dashed #d0d5dd',
+                                        borderRadius: 2,
+                                        bgcolor: '#f8f9fa',
+                                        p: 2,
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'border-color 0.2s ease',
+                                        '&:hover': { borderColor: '#2874F0' },
+                                    }}
+                                >
+                                    <CloudUpload sx={{ fontSize: 36, color: '#2874F0', mb: 1 }} />
+                                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a' }}>
+                                        {knowledgeFile ? knowledgeFile.name : 'Click to choose a PDF'}
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6c757d' }}>
+                                        {knowledgeFile ? `${(knowledgeFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max 10 MB'}
+                                    </Typography>
+                                </Box>
+                            </label>
+
+                            <RadioGroup
+                                row
+                                value={knowledgeMode}
+                                onChange={(e) => setKnowledgeMode(e.target.value)}
+                            >
+                                <FormControlLabel value="new" control={<Radio />} label="New DB" />
+                                <FormControlLabel value="append" control={<Radio />} label="Append" />
+                            </RadioGroup>
+
+                            <Button
+                                variant="contained"
+                                onClick={handleKnowledgeUpload}
+                                disabled={knowledgeUploading}
+                                sx={{
+                                    bgcolor: '#2874F0',
+                                    color: '#FFFFFF',
+                                    textTransform: 'none',
+                                    fontWeight: 700,
+                                    py: 1.25,
+                                    borderRadius: 2,
+                                    boxShadow: 'none',
+                                    '&:hover': { bgcolor: '#1565c0', boxShadow: 'none' },
+                                }}
+                            >
+                                {knowledgeUploading ? 'Processing...' : 'Process PDF'}
+                            </Button>
+                        </Box>
+                    </Box>
+                </Paper>
 
                 {/* Tabs */}
                 <Paper

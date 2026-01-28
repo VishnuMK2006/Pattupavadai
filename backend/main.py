@@ -1,9 +1,11 @@
-from typing import Dict
+from typing import Dict, List, Any
 import os
 import secrets
 import base64
 import uuid
 import shutil
+import time
+from io import BytesIO
 import httpx
 
 import bcrypt
@@ -11,7 +13,7 @@ import bcrypt
 if not hasattr(bcrypt, "__about__"):
     bcrypt.__about__ = type("bcrypt_about", (), {"__version__": bcrypt.__version__})
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -23,6 +25,12 @@ import asyncio
 import traceback
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+from PyPDF2 import PdfReader
 
 
 load_dotenv()
@@ -70,6 +78,75 @@ client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
 orders_col = db["orders"]
+
+QDRANT_URL = os.environ.get("QDRANT_URL")
+QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
+QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "pattupavadai-rag")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "text-embedding-3-small")
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
+
+
+def get_qdrant_client() -> QdrantClient:
+    if not QDRANT_URL or not QDRANT_API_KEY:
+        raise HTTPException(status_code=500, detail="Qdrant configuration missing")
+    return QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+
+
+def get_embeddings_client() -> OpenAIEmbeddings:
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY missing")
+    return OpenAIEmbeddings(model=EMBED_MODEL, api_key=OPENAI_API_KEY)
+
+
+def extract_pdf_text(pdf_bytes: bytes) -> str:
+    try:
+        reader = PdfReader(BytesIO(pdf_bytes))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Unable to read PDF: {exc}")
+
+    pages: List[str] = []
+    for page in reader.pages:
+        try:
+            pages.append(page.extract_text() or "")
+        except Exception:
+            pages.append("")
+
+    text = "\n".join(pages).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="PDF has no extractable text")
+    return text
+
+
+def text_to_documents(text: str) -> List[Document]:
+    docs = [Document(page_content=text)]
+    return text_splitter.split_documents(docs)
+
+
+def ensure_collection(client: QdrantClient, vector_size: int, recreate: bool = False) -> None:
+    exists = client.collection_exists(QDRANT_COLLECTION)
+    if recreate and exists:
+        client.delete_collection(QDRANT_COLLECTION)
+        time.sleep(1)
+        exists = False
+    if not exists:
+        client.create_collection(
+            collection_name=QDRANT_COLLECTION,
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+        )
+
+
+def build_qdrant_points(vectors: List[List[float]], payloads: List[Dict[str, Any]]) -> List[PointStruct]:
+    base_id = int(time.time() * 1000)
+    return [
+        PointStruct(id=base_id + idx, vector=vector, payload=payload)
+        for idx, (vector, payload) in enumerate(zip(vectors, payloads))
+    ]
+
+
+def log_ingest(message: str) -> None:
+    print(f"[KnowledgeUpload] {message}")
 
 
 class SignupRequest(BaseModel):
@@ -534,6 +611,71 @@ async def get_all_orders():
     for order in orders:
         order["_id"] = str(order["_id"])
     return orders
+
+
+@app.post("/admin/knowledge/upload")
+async def upload_knowledge_pdf(mode: str = Form(...), file: UploadFile = File(...)):
+    if mode not in {"new", "append"}:
+        raise HTTPException(status_code=400, detail="mode must be 'new' or 'append'")
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Please upload a PDF file")
+
+    pdf_bytes = await file.read()
+    if not pdf_bytes:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+    log_ingest(f"Received '{file.filename}' ({len(pdf_bytes) / 1024:.1f} KB) with mode={mode}")
+
+    text = await asyncio.to_thread(extract_pdf_text, pdf_bytes)
+    log_ingest(f"Extracted {len(text)} characters from PDF")
+    documents = text_to_documents(text)
+    if not documents:
+        raise HTTPException(status_code=400, detail="No content detected after chunking")
+    log_ingest(f"Split into {len(documents)} logical chunks")
+
+    embed_inputs = [doc.page_content for doc in documents]
+    embeddings_client = get_embeddings_client()
+    vectors: List[List[float]] = []
+    batch_size = 5
+    for start in range(0, len(embed_inputs), batch_size):
+        batch = embed_inputs[start:start + batch_size]
+        batch_vectors = await asyncio.to_thread(embeddings_client.embed_documents, batch)
+        vectors.extend(batch_vectors)
+        log_ingest(
+            f"Embedded {min(len(vectors), len(embed_inputs))}/{len(embed_inputs)} text chunks"
+        )
+
+    if not vectors:
+        raise HTTPException(status_code=500, detail="Failed to compute embeddings")
+
+    payloads: List[Dict[str, Any]] = []
+    for idx, doc in enumerate(documents):
+        payload_meta = {k: (str(v) if not isinstance(v, (int, float, bool)) else v) for k, v in doc.metadata.items()}
+        payloads.append({
+            "text": doc.page_content,
+            "chunk_index": idx,
+            **payload_meta,
+        })
+
+    q_client = get_qdrant_client()
+    ensure_collection(q_client, len(vectors[0]), recreate=(mode == "new"))
+    points = build_qdrant_points(vectors, payloads)
+
+    upsert_batch = 20
+    for start in range(0, len(points), upsert_batch):
+        chunk_points = points[start:start + upsert_batch]
+        q_client.upsert(collection_name=QDRANT_COLLECTION, points=chunk_points)
+        log_ingest(f"Uploaded {min(start + upsert_batch, len(points))}/{len(points)} vectors to Qdrant")
+
+    log_ingest("Knowledge base update complete")
+
+    return {
+        "message": "Knowledge base updated",
+        "mode": mode,
+        "chunks": len(documents),
+        "collection": QDRANT_COLLECTION,
+    }
 
 
 # Chatbot proxy endpoint to bypass CORS
