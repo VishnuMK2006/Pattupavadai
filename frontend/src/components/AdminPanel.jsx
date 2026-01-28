@@ -330,7 +330,7 @@ const AdminPanel = ({ onSignOut }) => {
                                     <Typography sx={{ color: '#999', fontSize: '12px' }}>admin@gmail.com</Typography>
                                 </Box>
                                 <MuiDivider />
-                                <MenuItem onClick={onSignOut} sx={{ color: '#d32f2f' }}>
+                                <MenuItem onClick={() => { handleProfileMenuClose(); onSignOut(); }} sx={{ color: '#d32f2f' }}>
                                     <Logout sx={{ fontSize: 20, mr: 2 }} />
                                     <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
                                 </MenuItem>

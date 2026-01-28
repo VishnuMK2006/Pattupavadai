@@ -61,10 +61,10 @@ export default function LandingPage({ onAuthSuccess }) {
     ];
 
     const bestSellers = [
-        { id: 10, title: 'Traditional Silk Pavadai', price: '₹1,999', img: '/images/p10.jpg' },
-        { id: 11, title: 'Designer Ethnic Gown', price: '₹2,499', img: '/images/p11.jpg' },
-        { id: 13, title: 'Golden Zari Pattu', price: '₹2,299', img: '/images/p13.jpg' },
-        { id: 14, title: 'Royal Maroon Frock', price: '₹1,699', img: '/images/p14.jpg' },
+        { id: 10, title: 'Traditional Silk Pavadai', price: '₹1,999', img: '/images/Untitled design (20).png' },
+        { id: 11, title: 'Designer Ethnic Gown', price: '₹2,499', img: '/images/Untitled design (21).png' },
+        { id: 13, title: 'Golden Zari Pattu', price: '₹2,299', img: '/images/Untitled design (22).png' },
+        { id: 14, title: 'Royal Maroon Frock', price: '₹1,699', img: '/images/Untitled design (23).png' },
     ];
 
     const videoShorts = [
@@ -264,10 +264,10 @@ export default function LandingPage({ onAuthSuccess }) {
             <Container maxWidth={false} sx={{ mt: -6, position: 'relative', zIndex: 10, px: { xs: 2, md: 10 } }}>
                 <Grid container spacing={8} sx={{ display: 'flex' }}>
                     {[
-                        { title: 'New Arrivals', img: '/images/p20.jpg' },
-                        { title: 'Bestsellers', img: '/images/p40.jpg' },
-                        { title: 'Artisan Picks', img: '/images/p35.jpg' },
-                        { title: 'Heritage Edit', img: '/images/p34.jpg' }
+                        { title: 'New Arrivals', img: '/images/Untitled design (28).png' },
+                        { title: 'Bestsellers', img: '/images/Untitled design (43).png' },
+                        { title: 'Artisan Picks', img: '/images/Untitled design (40).png' },
+                        { title: 'Heritage Edit', img: '/images/Untitled design (39).png' }
                     ].map((item, idx) => (
                         <Grid item xs={6} sx={{ display: 'flex', width: { md: '20%' }, flex: { md: '0 0 20%' } }} key={idx}>
                             <Paper

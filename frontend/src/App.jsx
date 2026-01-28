@@ -3,29 +3,22 @@ import './App.css';
 import Scene from "./components/Scene";
 import AuthForm from "./components/AuthForm";
 import ProductSelect from "./components/ProductSelect";
-import Preview from "./components/Preview";
+import LandingPage from "./components/LandingPage";
 import Sidebar from "./components/Sidebar";
 import AdminPanel from "./components/AdminPanel";
 import PaymentModal from "./components/PaymentModal";
 import CartDrawer from "./components/CartDrawer";
 import Dashboard from "./components/Dashboard";
 import Chatbot from "./components/Chatbot";
-import LandingPage from "./components/LandingPage";
-import Favorites from "./components/Favorites";
 import AboutPattupavadai from "./components/AboutPattupavadai";
+import Favorites from "./components/Favorites";
+import CartPage from "./components/CartPage";
+import OrderSummary from "./components/OrderSummary";
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Import product images
-const pattuImageUrl = '/images/pattupavadai.png';
-const ethnicFrockImageUrl = '/images/ethnicfrock.jpg';
-const kurthaImageUrl = '/images/kurtapyjama.jpg';
-const kurtaPantImageUrl = '/images/kurtapant.jpg';
-
 import {
   Box,
   Typography,
   Button,
-  Paper,
   Chip,
   AppBar,
   Toolbar,
@@ -34,20 +27,31 @@ import {
   Divider,
   Snackbar,
   Alert,
+  Menu,
+  MenuItem,
+  InputAdornment,
+  TextField,
+  Badge,
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import {
   Logout,
   SwapHoriz,
-  Close,
-  CheckCircle,
   ArrowBack,
   Person,
   ShoppingBag,
   Search,
   ShoppingBagOutlined,
-  FavoriteBorder
+  FavoriteBorder,
+  CheckCircle
 } from '@mui/icons-material';
-import { Modal, Stack, CircularProgress, Menu, MenuItem, InputAdornment, TextField, Badge } from '@mui/material';
+
+// Import product images
+const pattuImageUrl = '/images/pattupavadai.png';
+const ethnicFrockImageUrl = '/images/ethnicfrock.jpg';
+const kurthaImageUrl = '/images/kurtapyjama.jpg';
+const kurtaPantImageUrl = '/images/kurtapant.jpg';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -60,29 +64,44 @@ function App() {
   const [selectedSleeveType, setSelectedSleeveType] = useState("short");
   const [selectedNeckDesign, setSelectedNeckDesign] = useState("round");
   const [selectedBorderDesign, setSelectedBorderDesign] = useState("gold-zari");
+
   const [topColor, setTopColor] = useState("#ff6600");
   const [bottomColor, setBottomColor] = useState("#2ecc71");
+
   const [cart, setCart] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [view, setView] = useState("shop"); // 'shop' | 'dashboard'
+  const [view, setView] = useState("shop");
+  const [previousView, setPreviousView] = useState("shop");
+
   const [show3DView, setShow3DView] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-
-  // New state for Add-to-Cart Preview
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
+  const [buyingItem, setBuyingItem] = useState(null);
 
   // Generated product image state
   const [generatedProductImage, setGeneratedProductImage] = useState(null);
   const [isGeneratingProductImage, setIsGeneratingProductImage] = useState(false);
   const [showAddToCartSuccess, setShowAddToCartSuccess] = useState(false);
+  const [cartSuccessMsg, setCartSuccessMsg] = useState("Added to cart successfully! 🎉");
   const [showAddToFavSuccess, setShowAddToFavSuccess] = useState(false);
-  const [pendingImageName, setPendingImageName] = useState(null);
-  const [genError, setGenError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+
+  const calculatePrice = (item) => {
+    if (!item.price) return 1500;
+    const priceStr = String(item.price).replace(/[^0-9.]/g, '');
+    return Number(priceStr) || 1500;
+  };
+
+  const navigateToCart = () => {
+    setPreviousView(view);
+    setView('cart');
+  };
+
+  const navigateToFavorites = () => {
+    setPreviousView(view);
+    setView('favorites');
+  };
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -92,7 +111,6 @@ function App() {
     setAnchorEl(null);
   };
 
-  // Restore login session on load
   useEffect(() => {
     try {
       const saved = localStorage.getItem("pp_user");
@@ -118,7 +136,6 @@ function App() {
 
   const handleApplyFilters = async () => {
     if (!activeProduct) return;
-
     const error = validateSelection();
     if (error) {
       alert(error);
@@ -163,7 +180,6 @@ function App() {
 
   const addToCart = () => {
     if (!activeProduct) return;
-
     const error = validateSelection();
     if (error) {
       alert(error);
@@ -186,16 +202,21 @@ function App() {
       preview_url: generatedProductImage || activeProduct.image
     };
 
-    setCart([...cart, newItem]);
+    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === newItem.product_id);
 
-    // Show success animation
+    if (isAlreadyInCart) {
+      alert("This item is already in your bag.");
+      return;
+    }
+
+    setCart([...cart, newItem]);
+    setCartSuccessMsg("Added to bag successfully! 🎉");
     setShowAddToCartSuccess(true);
     setTimeout(() => setShowAddToCartSuccess(false), 2000);
   };
 
   const handleBuyNow = () => {
     if (!activeProduct) return;
-
     const error = validateSelection();
     if (error) {
       alert(error);
@@ -205,7 +226,7 @@ function App() {
     const newItem = {
       product_id: activeProduct.id,
       product_name: activeProduct.name,
-      fabric_type: selectedFabricType, // Use the new fabric type state
+      fabric_type: selectedFabricType,
       top_style: selectedTopStyle,
       bottom_style: selectedBottomStyle,
       dress_type: selectedDressType,
@@ -218,12 +239,14 @@ function App() {
     };
 
     setCart([...cart, newItem]);
-    setIsCartOpen(true);
+
+    // Instant Checkout logic
+    setBuyingItem(newItem);
+    setView('order-summary');
   };
 
   const addToFavorites = () => {
     if (!activeProduct) return;
-
     const error = validateSelection();
     if (error) {
       alert(error);
@@ -252,11 +275,49 @@ function App() {
   };
 
   const handleMoveToBag = (item, index) => {
+    const itemId = item.id || item.product_id;
+    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === itemId);
+
+    if (isAlreadyInCart) {
+      alert("This item is already in your bag.");
+      return;
+    }
+
     setCart([...cart, item]);
     const newFavs = [...favorites];
     newFavs.splice(index, 1);
     setFavorites(newFavs);
     setIsCartOpen(true);
+  };
+
+  const handleAddToCartFromFav = (item) => {
+    const itemId = item.id || item.product_id;
+    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === itemId);
+
+    if (isAlreadyInCart) {
+      setCartSuccessMsg("This item is already in your bag.");
+      setShowAddToCartSuccess(true);
+      setTimeout(() => setShowAddToCartSuccess(false), 2000);
+      return false;
+    }
+
+    const cartItem = {
+      ...item,
+      product_id: itemId,
+      fabric_type: item.fabric_type || "Standard",
+      preview_url: item.preview_url || item.image
+    };
+
+    setCart(prev => [...prev, cartItem]);
+    setCartSuccessMsg("Added to bag successfully! 🎉");
+    setShowAddToCartSuccess(true);
+    setTimeout(() => setShowAddToCartSuccess(false), 2000);
+    return true;
+  };
+
+  const handleBuyNowFromFav = (item) => {
+    setBuyingItem(item);
+    setView('order-summary');
   };
 
   const handleRemoveFavorite = (index) => {
@@ -267,35 +328,39 @@ function App() {
 
   const handlePaymentSuccess = async () => {
     if (!user) return;
-
-    const sanitizedItems = cart.map(({ preview_url, ...rest }) => rest);
+    const itemsToBuy = buyingItem ? [buyingItem] : cart;
+    const totalAmount = itemsToBuy.reduce((sum, item) => sum + calculatePrice(item), 0);
+    const sanitizedItems = itemsToBuy.map(({ preview_url, ...rest }) => rest);
 
     const orderPayload = {
       user_email: user.email,
       items: sanitizedItems,
-      total_amount: cart.length * 1500, // Dummy fixed price
+      total_amount: totalAmount,
       order_date: new Date().toISOString()
     };
 
     try {
       const response = await fetch("http://localhost:8000/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderPayload),
       });
 
       if (response.ok) {
-        setCart([]); // Clear cart
-        setIsPaymentOpen(false);
+        if (buyingItem) {
+          const itemId = buyingItem.id || buyingItem.product_id;
+          setCart(prev => prev.filter(item => (item.id || item.product_id) !== itemId));
+        } else {
+          setCart([]);
+        }
+        setBuyingItem(null);
         setView("dashboard");
       } else {
-        alert("Failed to save order");
+        alert("Failed to create order");
       }
-    } catch (error) {
-      console.error("Error saving order:", error);
-      alert("Error saving order");
+    } catch (err) {
+      console.error(err);
+      alert("Error processing order");
     }
   };
 
@@ -397,6 +462,8 @@ function App() {
   const handleProductSelect = (product) => {
     setSelectedProduct(product.id);
     setSelectedFabric(null);
+    setIsPaymentOpen(false); // Reset payment modal
+    setView('shop'); // Ensure we are on shop/design view
   };
 
   const handleChangeProduct = () => {
@@ -424,18 +491,42 @@ function App() {
   };
 
   if (!user) {
-    return (
-      <LandingPage onAuthSuccess={handleAuthSuccess} />
-    );
+    return <LandingPage onAuthSuccess={handleAuthSuccess} />;
   }
 
-  // Admin flow
   if (user.email === "admin@gmail.com") {
     return <AdminPanel onSignOut={handleSignOut} />;
   }
 
+  const handleToggleFavorite = (product) => {
+    setFavorites((prev) => {
+      const isFav = prev.find((p) => p.id === product.id);
+      if (isFav) {
+        return prev.filter((p) => p.id !== product.id);
+      }
+      setShowAddToFavSuccess(true);
+      return [...prev, product];
+    });
+  };
+
+  // --- RENDERING VIEWS ---
+
   if (view === 'about') {
-    return <AboutPattupavadai onBack={() => setView('shop')} />;
+    return (
+      <AboutPattupavadai
+        user={user}
+        onBack={() => setView('shop')}
+        onSelect={(product) => handleProductSelect(product)}
+        onSignOut={handleSignOut}
+        onShowFavorites={navigateToFavorites}
+        onShowCart={navigateToCart}
+        onShowOrders={() => setView('dashboard')}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
+        onAddToCart={handleAddToCartFromFav}
+        cart={cart}
+      />
+    );
   }
 
   if (view === 'dashboard') {
@@ -446,9 +537,53 @@ function App() {
     return (
       <Favorites
         favorites={favorites}
-        onBack={() => setView('shop')}
+        onBack={() => setView(previousView)}
         onRemove={handleRemoveFavorite}
         onMoveToBag={handleMoveToBag}
+        onAddToCart={handleAddToCartFromFav}
+        onBuyNow={handleBuyNowFromFav}
+        cart={cart}
+      />
+    );
+  }
+
+  if (view === 'order-summary') {
+    return (
+      <>
+        <OrderSummary
+          item={buyingItem}
+          cartItems={cart}
+          onBack={() => setView(previousView || 'shop')}
+          onContinue={() => setIsPaymentOpen(true)}
+        />
+        <PaymentModal
+          open={isPaymentOpen}
+          onClose={() => { setIsPaymentOpen(false); setBuyingItem(null); }}
+          totalAmount={buyingItem ? calculatePrice(buyingItem) : cart.reduce((sum, item) => sum + calculatePrice(item), 0)}
+          onSuccess={handlePaymentSuccess}
+        />
+      </>
+    );
+  }
+
+  if (view === 'cart') {
+    return (
+      <CartPage
+        cartItems={cart}
+        onBack={() => setView(previousView)}
+        onRemove={(index) => {
+          const newCart = [...cart];
+          newCart.splice(index, 1);
+          setCart(newCart);
+        }}
+        onCheckout={() => {
+          setBuyingItem(null);
+          setView('order-summary');
+        }}
+        onBuyNow={(item) => {
+          setBuyingItem(item);
+          setView('order-summary');
+        }}
       />
     );
   }
@@ -459,8 +594,16 @@ function App() {
         user={user}
         products={products}
         onSelect={handleProductSelect}
-        onSignOut={handleSignOut}
         onKnowMore={() => setView('about')}
+        onShowFavorites={navigateToFavorites}
+        onShowCart={navigateToCart}
+        onShowOrders={() => setView('dashboard')}
+        onSignOut={handleSignOut}
+        favorites={favorites}
+        cart={cart}
+        onAddToCart={addToCart}
+        onBuyNow={handleBuyNow}
+        onToggleFavorite={handleToggleFavorite}
       />
     );
   }
@@ -498,14 +641,12 @@ function App() {
             >
               <ArrowBack />
             </IconButton>
-
             <Box
               component="img"
               src="/images/logo.jpg"
               sx={{ height: 40, width: 40, borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }}
               onClick={() => setSelectedProduct(null)}
             />
-
             <Typography
               variant="h5"
               sx={{
@@ -521,43 +662,16 @@ function App() {
 
             {activeProduct && (
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{
-                    borderColor: 'rgba(76, 0, 19, 0.1)',
-                    height: '24px',
-                    alignSelf: 'center',
-                  }}
-                />
+                <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(76, 0, 19, 0.1)', height: '24px', alignSelf: 'center' }} />
                 <Chip
                   label={activeProduct.name}
-                  sx={{
-                    bgcolor: 'rgba(76, 0, 19, 0.05)',
-                    color: '#4C0013',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    height: '28px',
-                    '& .MuiChip-label': {
-                      px: 1.5,
-                    }
-                  }}
+                  sx={{ bgcolor: 'rgba(76, 0, 19, 0.05)', color: '#4C0013', fontSize: '13px', fontWeight: 600, height: '28px' }}
                 />
                 <Button
                   size="small"
                   startIcon={<SwapHoriz sx={{ fontSize: 16 }} />}
                   onClick={handleChangeProduct}
-                  sx={{
-                    color: '#4C0013',
-                    textTransform: 'none',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    minWidth: 'auto',
-                    px: 1,
-                    '&:hover': {
-                      bgcolor: 'rgba(76, 0, 19, 0.05)',
-                    },
-                  }}
+                  sx={{ color: '#4C0013', textTransform: 'none', fontSize: '12px', fontWeight: 700, minWidth: 'auto', px: 1, '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.05)' } }}
                 >
                   Change
                 </Button>
@@ -565,32 +679,17 @@ function App() {
             )}
           </Box>
 
-          {/* Right Section - Actions and User */}
+          {/* Right Section */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {activeProduct && (
-              <IconButton
-                onClick={() => setView('favorites')}
-                sx={{
-                  color: '#4C0013',
-                  mr: 1,
-                  '&:hover': {
-                    bgcolor: 'rgba(76, 0, 19, 0.05)',
-                  }
-                }}
-              >
+              <IconButton onClick={() => setView('favorites')} sx={{ color: '#4C0013', mr: 1, '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.05)' } }}>
                 <FavoriteBorder />
               </IconButton>
             )}
-
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <AnimatePresence>
                 {showSearch ? (
-                  <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 280, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 280, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
                     <TextField
                       autoFocus
                       placeholder="Search ethnic wear..."
@@ -598,83 +697,39 @@ function App() {
                       onBlur={() => setShowSearch(false)}
                       InputProps={{
                         disableUnderline: true,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Search sx={{ color: '#4C0013', opacity: 0.5 }} />
-                          </InputAdornment>
-                        ),
-                        sx: {
-                          bgcolor: 'rgba(76, 0, 19, 0.03)',
-                          px: 2,
-                          py: 1,
-                          borderRadius: '50px',
-                          fontSize: '13px',
-                          width: '100%',
-                          border: `1px solid rgba(76, 0, 19, 0.1)`,
-                        }
+                        startAdornment: <InputAdornment position="start"><Search sx={{ color: '#4C0013', opacity: 0.5 }} /></InputAdornment>,
+                        sx: { bgcolor: 'rgba(76, 0, 19, 0.03)', px: 2, py: 1, borderRadius: '50px', fontSize: '13px', width: '100%', border: `1px solid rgba(76, 0, 19, 0.1)` }
                       }}
                     />
                   </motion.div>
                 ) : (
-                  <IconButton onClick={() => setShowSearch(true)}>
-                    <Search sx={{ color: '#4C0013' }} />
-                  </IconButton>
+                  <IconButton onClick={() => setShowSearch(true)}><Search sx={{ color: '#4C0013' }} /></IconButton>
                 )}
               </AnimatePresence>
             </Box>
 
-            <IconButton onClick={() => setIsCartOpen(true)}>
+            <IconButton onClick={navigateToCart}>
               <Badge badgeContent={cart.length} color="error" sx={{ '& .MuiBadge-badge': { bgcolor: '#B38B00' } }}>
                 <ShoppingBagOutlined sx={{ color: '#4C0013' }} />
               </Badge>
             </IconButton>
 
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{
-                borderColor: 'rgba(76, 0, 19, 0.1)',
-                height: '32px',
-                alignSelf: 'center',
-              }}
-            />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(76, 0, 19, 0.1)', height: '32px', alignSelf: 'center' }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <IconButton
-                onClick={handleProfileMenuOpen}
-                sx={{ p: 0.5, border: '2px solid rgba(179, 139, 0, 0.2)' }}
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: 'rgba(179, 139, 0, 0.1)',
-                    color: '#B38B00',
-                    border: '1.5px solid #B38B00',
-                  }}
-                >
-                  <Person sx={{ fontSize: 20 }} />
-                </Avatar>
+              <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5, border: '2px solid rgba(179, 139, 0, 0.2)' }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(179, 139, 0, 0.1)', color: '#B38B00', border: '1.5px solid #B38B00' }}><Person sx={{ fontSize: 20 }} /></Avatar>
               </IconButton>
-
               <Menu
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
                 onClose={handleProfileMenuClose}
-                PaperProps={{
-                  sx: {
-                    mt: 1.5,
-                    borderRadius: '16px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                    border: '1px solid rgba(0,0,0,0.05)',
-                    minWidth: 180,
-                  }
-                }}
+                PaperProps={{ sx: { mt: 1.5, borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: '1px solid rgba(0,0,0,0.05)', minWidth: 180 } }}
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
                 <Box sx={{ px: 2, py: 1.5 }}>
-                  <Typography sx={{ fontWeight: 800, color: '#4C0013', fontSize: '14px' }}>{user.name}</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#4C0013', fontSize: '14px' }}>{user.name || user.email.split('@')[0]}</Typography>
                   <Typography sx={{ color: '#999', fontSize: '12px' }}>{user.email}</Typography>
                 </Box>
                 <Divider />
@@ -682,7 +737,7 @@ function App() {
                   <ShoppingBag sx={{ fontSize: 20, mr: 2, color: '#B38B00' }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>My Orders</Typography>
                 </MenuItem>
-                <MenuItem onClick={handleSignOut} sx={{ color: '#d32f2f' }}>
+                <MenuItem onClick={() => { handleProfileMenuClose(); handleSignOut(); }} sx={{ color: '#d32f2f' }}>
                   <Logout sx={{ fontSize: 20, mr: 2 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
                 </MenuItem>
@@ -693,126 +748,113 @@ function App() {
       </AppBar>
       <Toolbar sx={{ minHeight: '80px !important' }} />
 
-      {view === 'dashboard' ? (
-        <Dashboard user={user} onBack={() => setView('shop')} />
-      ) : view === 'favorites' ? (
-        <Favorites
-          favorites={favorites}
-          onBack={() => setView('shop')}
-          onRemove={handleRemoveFavorite}
-          onMoveToBag={handleMoveToBag}
-        />
-      ) : (
-        <div className="app-body">
-          {/* Left: Image/Scene Area */}
-          <div className="image-preview-pane">
-            {!show3DView && (activeProduct?.image || generatedProductImage || isGeneratingProductImage) ? (
-              <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-                {isGeneratingProductImage ? (
-                  <Box sx={{ textAlign: 'center' }}>
-                    <CircularProgress size={40} sx={{ color: '#4C0013', mb: 2 }} />
-                    <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#4C0013' }}>CRAFTING YOUR MASTERPIECE...</Typography>
-                  </Box>
-                ) : (
-                  <motion.img
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    src={generatedProductImage || activeProduct.image}
-                    alt={activeProduct.name}
-                    style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px' }}
-                  />
-                )}
-              </Box>
-            ) : null}
-
-            {show3DView && (
-              <Scene
-                fabricModels={fabricModels}
-                topColor={topColor}
-                bottomColor={bottomColor}
-                selectedTopStyle={selectedTopStyle}
-                selectedBottomStyle={selectedBottomStyle}
-                onTopStyleSelect={handleTopStyleSelect}
-                onBottomStyleSelect={handleBottomStyleSelect}
-              />
-            )}
-          </div>
-
-          {/* Middle: Product Details */}
-          <div className="details-pane">
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#111', mb: 1, fontFamily: '"Playfair Display", serif' }}>
-              {activeProduct?.name}
-            </Typography>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Chip label="4.3 ★" size="small" sx={{ bgcolor: '#2ecc71', color: 'white', fontWeight: 700 }} />
-              <Typography variant="body2" color="text.secondary">930 ratings & 54 reviews</Typography>
+      <div className="app-body">
+        <div className="image-preview-pane">
+          {!show3DView && (activeProduct?.image || generatedProductImage || isGeneratingProductImage) ? (
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+              {isGeneratingProductImage ? (
+                <Box sx={{ textAlign: 'center' }}>
+                  <CircularProgress size={40} sx={{ color: '#4C0013', mb: 2 }} />
+                  <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#4C0013' }}>CRAFTING YOUR MASTERPIECE...</Typography>
+                </Box>
+              ) : (
+                <motion.img
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  src={generatedProductImage || activeProduct.image}
+                  alt={activeProduct.name}
+                  style={{ width: '100%', height: 'auto', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px' }}
+                />
+              )}
             </Box>
+          ) : null}
 
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#4C0013', mb: 3 }}>
-              ₹499 <span style={{ fontSize: '16px', color: '#999', textDecoration: 'line-through', marginLeft: '10px' }}>₹2,999</span>
-              <span style={{ fontSize: '16px', color: '#2ecc71', marginLeft: '10px' }}>83% off</span>
-            </Typography>
-
-            <Divider sx={{ mb: 4 }} />
-
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Available Offers</Typography>
-            <Stack spacing={2} sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
-                <Typography variant="body2"><strong>Bank Offer</strong> 10% off on SBI Credit Card, up to ₹1750 on orders of ₹5000 and above</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
-                <Typography variant="body2"><strong>Bank Offer</strong> Extra 5% Cashback on Axis Bank Credit Card</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
-                <Typography variant="body2"><strong>Special Price</strong> Get extra ₹1500 off (price inclusive of cashback/coupon)</Typography>
-              </Box>
-            </Stack>
-
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Product Description</Typography>
-            <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, mb: 4 }}>
-              This exquisite {activeProduct?.name} is a testament to traditional craftsmanship, tailored with premium fabrics to ensure your little one looks regal and feels comfortable at every celebration.
-            </Typography>
-          </div>
-
-          <Sidebar
-            fabrics={fabrics}
-            selectedFabric={selectedFabric}
-            onFabricSelect={handleFabricSelect}
-            topStyles={topStyles}
-            selectedTopStyle={selectedTopStyle}
-            onTopStyleSelect={handleTopStyleSelect}
-            bottomStyles={bottomStyles}
-            selectedBottomStyle={selectedBottomStyle}
-            onBottomStyleSelect={handleBottomStyleSelect}
-            selectedDressType={selectedDressType}
-            onDressTypeSelect={setSelectedDressType}
-            selectedFabricType={selectedFabricType}
-            onFabricTypeSelect={setSelectedFabricType}
-            selectedSleeveType={selectedSleeveType}
-            onSleeveTypeSelect={setSelectedSleeveType}
-            selectedNeckDesign={selectedNeckDesign}
-            onNeckDesignSelect={setSelectedNeckDesign}
-            selectedBorderDesign={selectedBorderDesign}
-            onBorderDesignSelect={setSelectedBorderDesign}
-            topColor={topColor}
-            onTopColorChange={setTopColor}
-            bottomColor={bottomColor}
-            onBottomColorChange={setBottomColor}
-            onAddToCart={addToCart}
-            onBuyNow={handleBuyNow}
-            show3DView={show3DView}
-            onToggle3DView={() => setShow3DView(!show3DView)}
-            onApplyFilters={handleApplyFilters}
-            isGeneratingProductImage={isGeneratingProductImage}
-            cartCount={cart.length}
-            onAddToFavorites={addToFavorites}
-          />
+          {show3DView && (
+            <Scene
+              fabricModels={fabricModels}
+              topColor={topColor}
+              bottomColor={bottomColor}
+              selectedTopStyle={selectedTopStyle}
+              selectedBottomStyle={selectedBottomStyle}
+              onTopStyleSelect={handleTopStyleSelect}
+              onBottomStyleSelect={handleBottomStyleSelect}
+            />
+          )}
         </div>
-      )}
+
+        <div className="details-pane">
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#111', mb: 1, fontFamily: '"Playfair Display", serif' }}>
+            {activeProduct?.name}
+          </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Chip label="4.3 ★" size="small" sx={{ bgcolor: '#2ecc71', color: 'white', fontWeight: 700 }} />
+            <Typography variant="body2" color="text.secondary">930 ratings & 54 reviews</Typography>
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#4C0013', mb: 3 }}>
+            ₹499 <span style={{ fontSize: '16px', color: '#999', textDecoration: 'line-through', marginLeft: '10px' }}>₹2,999</span>
+            <span style={{ fontSize: '16px', color: '#2ecc71', marginLeft: '10px' }}>83% off</span>
+          </Typography>
+
+          <Divider sx={{ mb: 4 }} />
+
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Available Offers</Typography>
+          <Stack spacing={2} sx={{ mb: 4 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+              <Typography variant="body2"><strong>Bank Offer</strong> 10% off on SBI Credit Card, up to ₹1750 on orders of ₹5000 and above</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+              <Typography variant="body2"><strong>Bank Offer</strong> Extra 5% Cashback on Axis Bank Credit Card</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+              <Typography variant="body2"><strong>Special Price</strong> Get extra ₹1500 off (price inclusive of cashback/coupon)</Typography>
+            </Box>
+          </Stack>
+
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Product Description</Typography>
+          <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, mb: 4 }}>
+            This exquisite {activeProduct?.name} is a testament to traditional craftsmanship, tailored with premium fabrics to ensure your little one looks regal and feels comfortable at every celebration.
+          </Typography>
+        </div>
+
+        <Sidebar
+          fabrics={fabrics}
+          selectedFabric={selectedFabric}
+          onFabricSelect={handleFabricSelect}
+          topStyles={topStyles}
+          selectedTopStyle={selectedTopStyle}
+          onTopStyleSelect={handleTopStyleSelect}
+          bottomStyles={bottomStyles}
+          selectedBottomStyle={selectedBottomStyle}
+          onBottomStyleSelect={handleBottomStyleSelect}
+          selectedDressType={selectedDressType}
+          onDressTypeSelect={setSelectedDressType}
+          selectedFabricType={selectedFabricType}
+          onFabricTypeSelect={setSelectedFabricType}
+          selectedSleeveType={selectedSleeveType}
+          onSleeveTypeSelect={setSelectedSleeveType}
+          selectedNeckDesign={selectedNeckDesign}
+          onNeckDesignSelect={setSelectedNeckDesign}
+          selectedBorderDesign={selectedBorderDesign}
+          onBorderDesignSelect={setSelectedBorderDesign}
+          topColor={topColor}
+          onTopColorChange={setTopColor}
+          bottomColor={bottomColor}
+          onBottomColorChange={setBottomColor}
+          onAddToCart={addToCart}
+          onBuyNow={handleBuyNow}
+          show3DView={show3DView}
+          onToggle3DView={() => setShow3DView(!show3DView)}
+          onApplyFilters={handleApplyFilters}
+          isGeneratingProductImage={isGeneratingProductImage}
+          cartCount={cart.length}
+          onAddToFavorites={addToFavorites}
+        />
+      </div>
 
 
       <CartDrawer
@@ -826,14 +868,15 @@ function App() {
         }}
         onCheckout={() => {
           setIsCartOpen(false);
-          setIsPaymentOpen(true);
+          setBuyingItem(null);
+          setView('order-summary');
         }}
       />
 
       <PaymentModal
         open={isPaymentOpen}
-        onClose={() => setIsPaymentOpen(false)}
-        totalAmount={cart.length * 1500}
+        onClose={() => { setIsPaymentOpen(false); setBuyingItem(null); }}
+        totalAmount={buyingItem ? calculatePrice(buyingItem) : cart.reduce((sum, item) => sum + calculatePrice(item), 0)}
         onSuccess={handlePaymentSuccess}
       />
 
@@ -854,12 +897,10 @@ function App() {
             fontWeight: 600,
             fontSize: '14px',
             boxShadow: '0 4px 12px rgba(46, 204, 113, 0.4)',
-            '& .MuiAlert-icon': {
-              color: '#FFFFFF',
-            },
+            zIndex: 9999,
           }}
         >
-          Added to cart successfully! 🎉
+          {cartSuccessMsg}
         </Alert>
       </Snackbar>
 
@@ -887,10 +928,9 @@ function App() {
         </Alert>
       </Snackbar>
 
-      {/* Chatbot - Only for customer view */}
       <Chatbot />
 
-    </div >
+    </div>
   );
 }
 
