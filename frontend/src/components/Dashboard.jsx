@@ -24,7 +24,7 @@ const luxuryColors = {
   maroon: '#4C0013',
   gold: '#B38B00',
   mustard: '#E3A018',
-  ivory: '#FFFDF5',
+  ivory: '#FFFBE6', // Updated to match Home Page
   text: '#2A000A',
   goldLight: '#D4AF37'
 };
@@ -234,7 +234,13 @@ export default function Dashboard({ user, onBack }) {
   }, [user]);
 
   return (
-    <Box sx={{ bgcolor: luxuryColors.ivory, minHeight: '100vh', pb: 10 }}>
+    <Box sx={{
+      bgcolor: luxuryColors.ivory,
+      minHeight: '100vh',
+      pb: 10,
+      backgroundImage: `radial-gradient(circle at 80% 0%, rgba(227, 160, 24, 0.08) 0%, transparent 50%), 
+                         radial-gradient(circle at 0% 100%, rgba(179, 139, 0, 0.08) 0%, transparent 50%)`
+    }}>
       {/* Header */}
       <Box sx={{
         bgcolor: '#FFFFFF',

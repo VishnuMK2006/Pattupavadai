@@ -99,7 +99,7 @@ const FALLBACK_IMAGES = {
 
 const MotionCard = motion(Card);
 
-export default function ProductSelect({ onSelect, products = defaultProducts, user, onSignOut, onKnowMore, onShowFavorites, onShowCart, onShowOrders }) {
+export default function ProductSelect({ onSelect, products = defaultProducts, user, onSignOut, onKnowMore, onShowFavorites, onShowCart, onShowOrders, favorites = [], cart = [] }) {
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -191,11 +191,13 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
             {/* Action Icons */}
             <Stack direction="row" spacing={1} alignItems="center">
               <IconButton onClick={onShowFavorites}>
-                <FavoriteBorder sx={{ color: luxuryColors.maroon }} />
+                <Badge badgeContent={favorites.length} color="error" invisible={favorites.length === 0} sx={{ '& .MuiBadge-badge': { bgcolor: luxuryColors.gold } }}>
+                  <FavoriteBorder sx={{ color: luxuryColors.maroon }} />
+                </Badge>
               </IconButton>
 
               <IconButton onClick={onShowCart}>
-                <Badge badgeContent={2} color="error" sx={{ '& .MuiBadge-badge': { bgcolor: luxuryColors.gold } }}>
+                <Badge badgeContent={cart.length} color="error" invisible={cart.length === 0} sx={{ '& .MuiBadge-badge': { bgcolor: luxuryColors.gold } }}>
                   <ShoppingBagOutlined sx={{ color: luxuryColors.maroon }} />
                 </Badge>
               </IconButton>
@@ -242,7 +244,7 @@ export default function ProductSelect({ onSelect, products = defaultProducts, us
               <ShoppingBagOutlined sx={{ fontSize: 20, mr: 2, color: luxuryColors.gold }} />
               <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>My Orders</Typography>
             </MenuItem>
-            <MenuItem onClick={onSignOut} sx={{ color: '#d32f2f' }}>
+            <MenuItem onClick={() => { handleProfileMenuClose(); onSignOut(); }} sx={{ color: '#d32f2f' }}>
               <Logout sx={{ fontSize: 20, mr: 2 }} />
               <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
             </MenuItem>

@@ -41,7 +41,7 @@ import { Menu, MenuItem, Divider as MuiDivider, Avatar } from '@mui/material';
 const luxuryColors = {
     maroon: '#4C0013',
     gold: '#B38B00',
-    ivory: '#FFFDF5',
+    ivory: '#FFFBE6',
     text: '#2A000A',
     goldLight: '#D4AF37'
 };
@@ -66,6 +66,15 @@ const AdminPanel = ({ onSignOut }) => {
     const [knowledgeRemaining, setKnowledgeRemaining] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const uploadStartRef = useRef(null);
+    const [anchorEl, setAnchorEl] = useState(null);
+
+    const handleProfileMenuOpen = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleProfileMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     const handleProfileMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -273,7 +282,12 @@ const AdminPanel = ({ onSignOut }) => {
     };
 
     return (
-        <Box sx={{ bgcolor: luxuryColors.ivory, minHeight: '100vh' }}>
+        <Box sx={{
+            bgcolor: luxuryColors.ivory,
+            minHeight: '100vh',
+            backgroundImage: `radial-gradient(circle at 80% 0%, rgba(179, 139, 0, 0.05) 0%, transparent 50%), 
+                             radial-gradient(circle at 0% 100%, rgba(76, 0, 19, 0.02) 0%, transparent 50%)`
+        }}>
             <AppBar position="sticky" elevation={0} sx={{ bgcolor: luxuryColors.maroon, zIndex: 1201 }}>
                 <Container maxWidth="xl">
                     <Toolbar sx={{ justifyContent: 'space-between', py: 1.5 }}>
@@ -289,16 +303,16 @@ const AdminPanel = ({ onSignOut }) => {
                                 >
                                     <ArrowBack />
                                 </IconButton>
-                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Box sx={{ width: 44, height: 44, borderRadius: '14px', bgcolor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                                     <AutoGraph sx={{ color: luxuryColors.maroon, fontSize: 24 }} />
                                 </Box>
                             </Box>
                             <Box>
-                                <Typography sx={{ color: 'white', fontSize: '22px', fontWeight: 900, fontFamily: '"Playfair Display", serif' }}>
+                                <Typography sx={{ color: 'white', fontSize: '24px', fontWeight: 900, fontFamily: '"Playfair Display", serif', letterSpacing: '-0.5px' }}>
                                     Kuzhavi Admin
                                 </Typography>
-                                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', letterSpacing: '1px' }}>
-                                    BOUTIQUE MANAGEMENT CONSOLE
+                                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase' }}>
+                                    Boutique Operations
                                 </Typography>
                             </Box>
                         </Box>
@@ -340,7 +354,7 @@ const AdminPanel = ({ onSignOut }) => {
                                     <Typography sx={{ color: '#999', fontSize: '12px' }}>admin@gmail.com</Typography>
                                 </Box>
                                 <MuiDivider />
-                                <MenuItem onClick={onSignOut} sx={{ color: '#d32f2f' }}>
+                                <MenuItem onClick={() => { handleProfileMenuClose(); onSignOut(); }} sx={{ color: '#d32f2f' }}>
                                     <Logout sx={{ fontSize: 20, mr: 2 }} />
                                     <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
                                 </MenuItem>
@@ -357,9 +371,10 @@ const AdminPanel = ({ onSignOut }) => {
                     sx={{
                         mb: 3,
                         bgcolor: '#ffffff',
-                        border: '1px solid #e8eaed',
-                        borderRadius: 3,
-                        p: 3,
+                        border: '1px solid rgba(179, 139, 0, 0.1)',
+                        borderRadius: '24px',
+                        p: 4,
+                        boxShadow: '0 10px 40px rgba(76, 0, 19, 0.02)',
                     }}
                 >
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
@@ -367,9 +382,8 @@ const AdminPanel = ({ onSignOut }) => {
                             <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', mb: 1 }}>
                                 Knowledge Base Upload
                             </Typography>
-                            <Typography sx={{ fontSize: '14px', color: '#6c757d', mb: 2 }}>
-                                Upload a PDF to refresh the chatbot knowledge store. Use <strong>New DB</strong> to rebuild the
-                                collection or <strong>Append</strong> to add to the existing vectors.
+                            <Typography sx={{ fontSize: '14px', color: '#666', mb: 3, lineHeight: 1.6 }}>
+                                Upload product guides, styling tips, or fabric technical data to train the AI Assistant. Use <strong>New DB</strong> to reset or <strong>Append</strong> to expand existing knowledge.
                             </Typography>
                             {knowledgeStatus && (
                                 <Alert severity={knowledgeStatus.type} sx={{ fontSize: '13px', mt: 1 }}>
@@ -381,11 +395,17 @@ const AdminPanel = ({ onSignOut }) => {
                                     <LinearProgress
                                         variant={knowledgeProgress > 0 ? 'determinate' : 'indeterminate'}
                                         value={knowledgeProgress > 0 ? knowledgeProgress : undefined}
+                                        sx={{
+                                            height: 8,
+                                            borderRadius: 4,
+                                            bgcolor: `${luxuryColors.gold}20`,
+                                            '& .MuiLinearProgress-bar': { bgcolor: luxuryColors.gold }
+                                        }}
                                     />
-                                    <Typography sx={{ fontSize: '12px', color: '#6c757d', mt: 1 }}>
-                                        {knowledgeProgress > 0 ? `${knowledgeProgress}% uploaded` : 'Uploading...'} · Elapsed {formatDuration(knowledgeElapsed)}
+                                    <Typography sx={{ fontSize: '12px', color: luxuryColors.gold, fontWeight: 700, mt: 1.5, letterSpacing: '0.5px' }}>
+                                        {knowledgeProgress > 0 ? `${knowledgeProgress}% INGESTED` : 'PROCESSING...'} · ELAPSED {formatDuration(knowledgeElapsed)}
                                         {knowledgeRemaining !== null && Number.isFinite(knowledgeRemaining) && knowledgeProgress < 100 && (
-                                            <> · Remaining {formatDuration(knowledgeRemaining)}</>
+                                            <> · REMAINING {formatDuration(knowledgeRemaining)}</>
                                         )}
                                     </Typography>
                                 </Box>
@@ -403,22 +423,26 @@ const AdminPanel = ({ onSignOut }) => {
                             <label htmlFor="knowledge-upload" style={{ width: '100%' }}>
                                 <Box
                                     sx={{
-                                        border: '2px dashed #d0d5dd',
-                                        borderRadius: 2,
-                                        bgcolor: '#f8f9fa',
-                                        p: 2,
+                                        border: `2px dashed ${luxuryColors.gold}40`,
+                                        borderRadius: '20px',
+                                        bgcolor: `${luxuryColors.gold}05`,
+                                        p: 4,
                                         textAlign: 'center',
                                         cursor: 'pointer',
-                                        transition: 'border-color 0.2s ease',
-                                        '&:hover': { borderColor: '#2874F0' },
+                                        transition: 'all 0.3s ease',
+                                        '&:hover': {
+                                            borderColor: luxuryColors.gold,
+                                            bgcolor: `${luxuryColors.gold}10`,
+                                            transform: 'translateY(-2px)'
+                                        },
                                     }}
                                 >
-                                    <CloudUpload sx={{ fontSize: 36, color: '#2874F0', mb: 1 }} />
-                                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a' }}>
-                                        {knowledgeFile ? knowledgeFile.name : 'Click to choose a PDF'}
+                                    <CloudUpload sx={{ fontSize: 48, color: luxuryColors.gold, mb: 1.5 }} />
+                                    <Typography sx={{ fontSize: '15px', fontWeight: 800, color: luxuryColors.maroon, fontFamily: '"Outfit", sans-serif' }}>
+                                        {knowledgeFile ? knowledgeFile.name : 'Select Knowledge PDF'}
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6c757d' }}>
-                                        {knowledgeFile ? `${(knowledgeFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max 10 MB'}
+                                    <Typography sx={{ fontSize: '12px', color: '#888', mt: 0.5 }}>
+                                        {knowledgeFile ? `${(knowledgeFile.size / 1024 / 1024).toFixed(2)} MB` : 'Upload product guides or fabric info'}
                                     </Typography>
                                 </Box>
                             </label>
@@ -427,9 +451,18 @@ const AdminPanel = ({ onSignOut }) => {
                                 row
                                 value={knowledgeMode}
                                 onChange={(e) => setKnowledgeMode(e.target.value)}
+                                sx={{ mb: 1 }}
                             >
-                                <FormControlLabel value="new" control={<Radio />} label="New DB" />
-                                <FormControlLabel value="append" control={<Radio />} label="Append" />
+                                <FormControlLabel
+                                    value="new"
+                                    control={<Radio sx={{ color: luxuryColors.gold, '&.Mui-checked': { color: luxuryColors.gold } }} />}
+                                    label={<Typography sx={{ fontSize: '14px', fontWeight: 600, color: luxuryColors.text }}>New DB</Typography>}
+                                />
+                                <FormControlLabel
+                                    value="append"
+                                    control={<Radio sx={{ color: luxuryColors.gold, '&.Mui-checked': { color: luxuryColors.gold } }} />}
+                                    label={<Typography sx={{ fontSize: '14px', fontWeight: 600, color: luxuryColors.text }}>Append</Typography>}
+                                />
                             </RadioGroup>
 
                             <Button
@@ -437,17 +470,24 @@ const AdminPanel = ({ onSignOut }) => {
                                 onClick={handleKnowledgeUpload}
                                 disabled={knowledgeUploading}
                                 sx={{
-                                    bgcolor: '#2874F0',
+                                    bgcolor: luxuryColors.gold,
                                     color: '#FFFFFF',
                                     textTransform: 'none',
                                     fontWeight: 700,
-                                    py: 1.25,
-                                    borderRadius: 2,
-                                    boxShadow: 'none',
-                                    '&:hover': { bgcolor: '#1565c0', boxShadow: 'none' },
+                                    py: 1.5,
+                                    borderRadius: '50px',
+                                    boxShadow: '0 8px 20px rgba(179, 139, 0, 0.2)',
+                                    fontFamily: '"Outfit", sans-serif',
+                                    '&:hover': {
+                                        bgcolor: '#9a7700',
+                                        boxShadow: '0 12px 25px rgba(179, 139, 0, 0.3)',
+                                    },
+                                    '&:disabled': {
+                                        bgcolor: 'rgba(179, 139, 0, 0.3)',
+                                    }
                                 }}
                             >
-                                {knowledgeUploading ? 'Processing...' : 'Process PDF'}
+                                {knowledgeUploading ? 'Processing...' : 'Process PDF Document'}
                             </Button>
                         </Box>
                     </Box>
@@ -457,11 +497,12 @@ const AdminPanel = ({ onSignOut }) => {
                 <Paper
                     elevation={0}
                     sx={{
-                        mb: 3,
+                        mb: 4,
                         bgcolor: '#ffffff',
-                        border: '1px solid #e8eaed',
-                        borderRadius: 3,
+                        border: '1px solid rgba(179, 139, 0, 0.1)',
+                        borderRadius: '20px',
                         overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
                     }}
                 >
                     <Tabs
@@ -469,13 +510,20 @@ const AdminPanel = ({ onSignOut }) => {
                         onChange={(e, v) => setTabValue(v)}
                         sx={{
                             px: 3,
-                            '& .MuiTab-root': { color: '#AAA', fontWeight: 700, py: 2.5 },
+                            '& .MuiTab-root': {
+                                color: '#888',
+                                fontWeight: 800,
+                                py: 3,
+                                fontSize: '13px',
+                                letterSpacing: '1px',
+                                transition: '0.3s'
+                            },
                             '& .Mui-selected': { color: `${luxuryColors.maroon} !important` },
-                            '& .MuiTabs-indicator': { backgroundColor: luxuryColors.gold, height: 4 }
+                            '& .MuiTabs-indicator': { backgroundColor: luxuryColors.gold, height: 3, borderRadius: '3px 3px 0 0' }
                         }}
                     >
-                        <Tab icon={<AutoGraph />} label="CURATION AI" iconPosition="start" />
-                        <Tab icon={<ShoppingBag />} label="ORDER REGISTRY" iconPosition="start" />
+                        <Tab icon={<AutoGraph sx={{ fontSize: 20 }} />} label="CURATION AI" iconPosition="start" />
+                        <Tab icon={<ShoppingBag sx={{ fontSize: 20 }} />} label="ORDER REGISTRY" iconPosition="start" />
                     </Tabs>
                 </Paper>
 
@@ -586,10 +634,10 @@ const AdminPanel = ({ onSignOut }) => {
                         <Table>
                             <TableHead sx={{ bgcolor: '#FAFAFA' }}>
                                 <TableRow>
-                                    <TableCell sx={{ fontWeight: 800 }}>ORDER ID</TableCell>
-                                    <TableCell sx={{ fontWeight: 800 }}>CUSTOMER</TableCell>
-                                    <TableCell sx={{ fontWeight: 800 }}>TOTAL</TableCell>
-                                    <TableCell sx={{ fontWeight: 800 }}>ACTION</TableCell>
+                                    <TableCell sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '12px', letterSpacing: '1px' }}>ORDER ID</TableCell>
+                                    <TableCell sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '12px', letterSpacing: '1px' }}>CUSTOMER</TableCell>
+                                    <TableCell sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '12px', letterSpacing: '1px' }}>TOTAL</TableCell>
+                                    <TableCell sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '12px', letterSpacing: '1px' }}>ACTION</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
