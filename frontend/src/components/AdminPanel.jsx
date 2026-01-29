@@ -66,15 +66,6 @@ const AdminPanel = ({ onSignOut }) => {
     const [knowledgeRemaining, setKnowledgeRemaining] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const uploadStartRef = useRef(null);
-    const [anchorEl, setAnchorEl] = useState(null);
-
-    const handleProfileMenuOpen = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleProfileMenuClose = () => {
-        setAnchorEl(null);
-    };
 
     const handleProfileMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
