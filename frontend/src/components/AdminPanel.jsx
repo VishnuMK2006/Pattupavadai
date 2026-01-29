@@ -24,6 +24,7 @@ import {
     FormControlLabel,
     Radio,
     LinearProgress,
+    IconButton,
 } from '@mui/material';
 import {
     CloudUpload,
@@ -63,7 +64,16 @@ const AdminPanel = ({ onSignOut }) => {
     const [knowledgeProgress, setKnowledgeProgress] = useState(0);
     const [knowledgeElapsed, setKnowledgeElapsed] = useState(0);
     const [knowledgeRemaining, setKnowledgeRemaining] = useState(null);
+    const [anchorEl, setAnchorEl] = useState(null);
     const uploadStartRef = useRef(null);
+
+    const handleProfileMenuOpen = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleProfileMenuClose = () => {
+        setAnchorEl(null);
+    };
 
     useEffect(() => {
         if (tabValue === 1) {

@@ -17,7 +17,7 @@ import {
   Close,
   Minimize,
   Send,
-  SupportAgent,
+  SmartToy,
   Person,
 } from '@mui/icons-material';
 
@@ -50,7 +50,6 @@ export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showWelcomeBubble, setShowWelcomeBubble] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Load chat history from session storage
@@ -77,14 +76,6 @@ export default function Chatbot() {
       sessionStorage.setItem('chatHistory', JSON.stringify(messages));
     }
   }, [messages]);
-
-  // Show welcome bubble after 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowWelcomeBubble(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -133,7 +124,7 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error('Error fetching chatbot response:', error);
-
+      
       // Fallback to local responses on error
       const normalizedInput = messageText.toLowerCase().trim();
       const fallbackResponse = CHATBOT_RESPONSES[normalizedInput] || "I'm having trouble connecting right now. Please try again in a moment, or contact our support team at 1800-123-4567.";
@@ -208,13 +199,13 @@ export default function Chatbot() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Avatar
                 sx={{
-                  bgcolor: '#FFFFFF',
-                  color: '#4C0013',
+                  bgcolor: '#B38B00',
+                  color: '#FFFFFF',
                   width: 36,
                   height: 36,
                 }}
               >
-                <SupportAgent sx={{ fontSize: 24 }} />
+                <SmartToy sx={{ fontSize: 20 }} />
               </Avatar>
               <Box>
                 <Typography sx={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.2 }}>
@@ -329,7 +320,7 @@ export default function Chatbot() {
                         mt: 0.5,
                       }}
                     >
-                      <SupportAgent sx={{ fontSize: 18 }} />
+                      <SmartToy sx={{ fontSize: 16 }} />
                     </Avatar>
                   )}
                   <Box
@@ -392,7 +383,7 @@ export default function Chatbot() {
                     height: 28,
                   }}
                 >
-                  <SupportAgent sx={{ fontSize: 18 }} />
+                  <SmartToy sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Paper
                   elevation={0}
@@ -469,134 +460,53 @@ export default function Chatbot() {
       {/* Floating Chat Button */}
       <Zoom in={!isOpen || isMinimized}>
         <Box
+          onClick={handleToggleChat}
           sx={{
             position: 'fixed',
             bottom: 24,
             right: 24,
             zIndex: 1300,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: 2
           }}
         >
-          {/* Welcome Bubble */}
-          <Fade in={showWelcomeBubble && !isOpen}>
-            <Paper
-              elevation={4}
+          <IconButton
+            sx={{
+              width: 60,
+              height: 60,
+              bgcolor: '#4C0013',
+              color: 'white',
+              boxShadow: '0 4px 16px rgba(76, 0, 19, 0.4)',
+              '&:hover': {
+                bgcolor: '#3a000e',
+                transform: 'scale(1.05)',
+              },
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <Chat sx={{ fontSize: 28 }} />
+          </IconButton>
+
+          {/* Notification Badge (optional) */}
+          {isMinimized && (
+            <Box
               sx={{
-                p: '14px 22px',
-                borderRadius: '24px 24px 0 24px',
-                bgcolor: '#FFFDF5', // Ivory background
-                border: '2px solid #B38B00', // Premium Gold/Yellow border
-                position: 'relative',
-                maxWidth: '240px',
-                boxShadow: '0 12px 35px rgba(179, 139, 0, 0.2)', // Gold tinted shadow
-                cursor: 'pointer',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: -10,
-                  right: 20,
-                  borderWidth: '10px 10px 0 0',
-                  borderStyle: 'solid',
-                  borderColor: '#B38B00 transparent transparent transparent',
-                }
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                bgcolor: '#FF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
               }}
-              onClick={handleToggleChat}
             >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowWelcomeBubble(false);
-                }}
-                sx={{
-                  position: 'absolute',
-                  top: -10,
-                  right: -10,
-                  bgcolor: '#f0f0f0',
-                  padding: '2px',
-                  '&:hover': { bgcolor: '#e0e0e0' }
-                }}
-              >
-                <Close sx={{ fontSize: 12 }} />
-              </IconButton>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Box sx={{
-                  bgcolor: '#B38B00',
-                  color: 'white',
-                  px: 1,
-                  py: 0.2,
-                  borderRadius: '4px',
-                  fontSize: '9px',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  NEW
-                </Box>
-                <Typography sx={{ fontSize: '13px', fontWeight: 800, color: '#4C0013' }}>
-                  Styling Advice ✨
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: '12px', color: '#666', lineHeight: 1.5, fontWeight: 500 }}>
-                Hi! I'm your **Designer Guide**. Let me help you choose the perfect outfit!
+              <Typography sx={{ fontSize: '10px', color: 'white', fontWeight: 700 }}>
+                1
               </Typography>
-            </Paper>
-          </Fade>
-
-          <Box sx={{ position: 'relative' }} onClick={handleToggleChat}>
-            <IconButton
-              sx={{
-                width: 60,
-                height: 60,
-                bgcolor: '#4C0013',
-                color: 'white',
-                boxShadow: '0 4px 16px rgba(76, 0, 19, 0.4)',
-                '&:hover': {
-                  bgcolor: '#3a000e',
-                  transform: 'scale(1.05)',
-                },
-                transition: 'all 0.3s ease',
-              }}
-            >
-              <Avatar
-                sx={{
-                  bgcolor: 'transparent',
-                  color: 'white',
-                  width: 32,
-                  height: 32,
-                }}
-              >
-                <SupportAgent sx={{ fontSize: 32 }} />
-              </Avatar>
-            </IconButton>
-
-            {/* Notification Badge */}
-            {(isMinimized || showWelcomeBubble) && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  bgcolor: '#FF4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                }}
-              >
-                <Typography sx={{ fontSize: '9px', color: 'white', fontWeight: 900 }}>
-                  1
-                </Typography>
-              </Box>
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
       </Zoom>
     </>

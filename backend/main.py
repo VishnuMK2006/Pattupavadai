@@ -683,44 +683,28 @@ async def upload_knowledge_pdf(mode: str = Form(...), file: UploadFile = File(..
 class ChatbotQueryRequest(BaseModel):
     query: str
 
-
 @app.post("/chatbot/query")
 async def chatbot_query(request: ChatbotQueryRequest):
     """
-    Kuzhavi Kids Designer Guide - AI Response System
+    Proxy endpoint for chatbot queries to external RAG API
     """
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return {"response": "I'm currently in offline mode. Please contact support at 1800-123-4567."}
-
-    client = OpenAI(api_key=api_key)
-    
-    system_prompt = """
-    You are the 'Kuzhavi Designer Guide', an expert in South Indian traditional kids' ethnic wear (Pattupavadai, Langa Voni, Kurta Sets).
-    Your tone is warm, professional, and helpful. You represent Kuzhavi Kids boutique.
-    
-    Your knowledge covers:
-    1. Fabrics: Banarasi Silk, Tissue Silk, Kalamkari, Organza, Cotton.
-    2. Styles: Pattu Pavadai, Ethnic Frocks, Traditional Gowns.
-    3. Customization: Sleeve types (puff, short), Necklines (round, square, boat), and Border designs.
-    4. Policies: 10-day return policy, free shipping, Cash on Delivery available.
-    5. Delivery: 3-5 business days for standard, 1-2 days for express.
-    
-    If asked something unrelated to fashion or Kuzhavi Kids, politely redirect them.
-    Keep responses concise and helpful.
-    """
-
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.query}
-            ],
-            max_tokens=500
-        )
-        return {"response": response.choices[0].message.content}
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://rag-medical.onrender.com/query",
+                json={"query": request.query},
+                headers={"Content-Type": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail="Failed to get response from chatbot service"
+                )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Chatbot service timeout")
     except Exception as e:
-        print(f"Chatbot error: {str(e)}")
-        # Fallback to a polite message if OpenAI fails
-        return {"response": "I'm having a bit of trouble thinking right now. Could you please try again in a moment?"}
+        print(f"Chatbot query error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chatbot service error: {str(e)}")
