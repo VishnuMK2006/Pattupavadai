@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -55,7 +55,7 @@ allowed_origins = _configured_origins or _default_frontend_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for debugging
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +71,9 @@ client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
 orders_col = db["orders"]
+products_col = db["products"]
+cart_col = db["cart"]
+favorites_col = db["favorites"]
 
 QDRANT_URL = os.environ.get("QDRANT_URL")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
@@ -143,7 +146,7 @@ def log_ingest(message: str) -> None:
 
 
 class SignupRequest(BaseModel):
-    email: EmailStr
+    email: str # Can be email or mobile number
     name: str
     shipping_address: str
     contact_details: str
@@ -151,19 +154,19 @@ class SignupRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
 class GoogleLoginRequest(BaseModel):
     token: str  # ID Token from Google
-    email: EmailStr
+    email: str
     name: str
     picture: str = None
 
 
 class UserResponse(BaseModel):
-    email: EmailStr
+    email: str
     name: str
     shipping_address: str
     contact_details: str
@@ -194,7 +197,7 @@ class OrderItem(BaseModel):
     image_name: str | None = None
 
 class OrderRequest(BaseModel):
-    user_email: EmailStr
+    user_email: str
     items: list[OrderItem]
     total_amount: float
     order_date: str
@@ -213,14 +216,65 @@ class PreviewRequest(BaseModel):
     accent: str | None = None
     user_email: str
 
+class CartItem(BaseModel):
+    user_email: str
+    product_id: str
+    product_name: str
+    fabric_type: str | None = "Standard"
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    preview_url: str | None = None
+
+class FavoriteItem(BaseModel):
+    user_email: str
+    product_id: str
+    product_name: str
+    fabric_type: str | None = "Standard"
+    top_style: str | None = None
+    bottom_style: str | None = None
+    dress_type: str | None = None
+    sleeve_type: str | None = None
+    neck_design: str | None = None
+    border_design: str | None = None
+    top_color: str | None = None
+    bottom_color: str | None = None
+    accent: str | None = None
+    preview_url: str | None = None
+
+class ProductModel(BaseModel):
+    name: str
+    blurb: str
+    description: str | None = ""
+    price: float
+    original_price: float
+    discount: str | None = ""
+    tag: str | None = ""
+    rating: float | None = 0.0
+    reviews_count: int | None = 0
+    card_image: str  # Base64 or URL
+    gallery_images: List[str] = [] # List of Base64 or URLs
+    video_url: str | None = ""
+    available_sizes: List[str] = []
+    highlights: List[str] = []
+    accent_color: str | None = "#4C0013"
+    category: str | None = "Pattu Pavadai"
+    in_stock: bool = True
 
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+
+async def hash_password(password: str) -> str:
+    return await asyncio.to_thread(pwd_context.hash, password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+async def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return await asyncio.to_thread(pwd_context.verify, plain_password, hashed_password)
 
 
 def issue_token() -> str:
@@ -235,11 +289,17 @@ def serialize_user(record: Dict[str, str]) -> UserResponse:
         contact_details=record["contact_details"],
         token=record["token"],
     )
+    
+class UpdateProfileRequest(BaseModel):
+    name: str # Added name to update profile request
+    shipping_address: str
+    contact_details: str
 
 
 @app.on_event("startup")
 async def init_indexes() -> None:
     await users_col.create_index("email", unique=True)
+    await products_col.create_index("name") # Optional index
     if os.environ.get("OPENAI_API_KEY"):
         print("OpenAI API Key loaded successfully")
     else:
@@ -257,28 +317,39 @@ async def healthcheck() -> Dict[str, str]:
 
 @app.post("/auth/signup", response_model=Dict[str, UserResponse])
 async def signup(payload: SignupRequest):
+    t_start = time.time()
+    print(f"[AUTH] Signup start for {payload.email}")
+    
     existing = await get_user(payload.email)
     if existing:
+        print(f"[AUTH] Signup failed: {payload.email} already exists")
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    print(f"[AUTH] Hashing password for {payload.email}...")
     token = issue_token()
+    hashed = await hash_password(payload.password)
+    print(f"[AUTH] Password hashed in {time.time() - t_start:.2f}s")
+
     user_doc: Dict[str, str] = {
         "email": payload.email,
         "name": payload.name,
         "shipping_address": payload.shipping_address,
         "contact_details": payload.contact_details,
-        "password_hash": hash_password(payload.password),
+        "password_hash": hashed,
         "token": token,
     }
 
+    print(f"[AUTH] Inserting user {payload.email} into DB...")
     await users_col.insert_one(user_doc)
-
+    
+    print(f"[AUTH] Signup complete for {payload.email} total time: {time.time() - t_start:.2f}s")
     return {"user": serialize_user(user_doc)}
 
 
 @app.post("/auth/login", response_model=Dict[str, UserResponse])
 async def login(payload: LoginRequest):
-    print(f"Login attempt: {payload.email}")
+    t_start = time.time()
+    print(f"[AUTH] Login attempt for: {payload.email}")
     # Hardcoded admin check
     if payload.email == "admin@gmail.com" and payload.password == "admin123@":
         token = issue_token()
@@ -291,13 +362,16 @@ async def login(payload: LoginRequest):
         }
         return {"user": UserResponse(**admin_user)}
 
+    print(f"[AUTH] Verifying password for {payload.email}...")
     record = await get_user(payload.email)
-    if not record or not verify_password(payload.password, record["password_hash"]):
+    if not record or not await verify_password(payload.password, record["password_hash"]):
+        print(f"[AUTH] Login failed for {payload.email} in {time.time() - t_start:.2f}s")
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = issue_token()
     await users_col.update_one({"email": payload.email}, {"$set": {"token": token}})
     record["token"] = token
+    print(f"[AUTH] Login successful for {payload.email} total time: {time.time() - t_start:.2f}s")
     return {"user": serialize_user( record)}
 
 
@@ -353,6 +427,49 @@ async def google_auth(payload: GoogleLoginRequest):
     except Exception as e:
         print(f"Social Auth Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Authentication server error")
+
+
+@app.post("/auth/update-profile", response_model=Dict[str, UserResponse])
+async def update_profile(email: str, payload: UpdateProfileRequest, token: str | None = None):
+    search_id = email.strip()
+    print(f"[PROFILE] Update attempt for: '{search_id}'")
+    
+    import re
+    # 1. Try to find the user
+    record = await users_col.find_one({
+        "$or": [
+            {"email": {"$regex": f"^{re.escape(search_id)}$", "$options": "i"}},
+            {"token": token if token else "NON_EXISTENT_TOKEN"}
+        ]
+    })
+    
+    if record:
+        print(f"[PROFILE] Found existing user: {record['email']}. Updating...")
+        update_data = {
+            "name": payload.name,
+            "shipping_address": payload.shipping_address,
+            "contact_details": payload.contact_details
+        }
+        await users_col.update_one({"_id": record["_id"]}, {"$set": update_data})
+        # Update local record for response
+        record.update(update_data)
+    else:
+        print(f"[PROFILE] User NOT found. Performing AUTO-REPAIR (Upsert)...")
+        # Create a new record to restore this ghost session
+        new_token = token if token else issue_token()
+        record = {
+            "email": search_id,
+            "name": payload.name,
+            "shipping_address": payload.shipping_address,
+            "contact_details": payload.contact_details,
+            "password_hash": "RESTORED_SESSION", 
+            "token": new_token,
+            "auth_provider": "auto_repair"
+        }
+        await users_col.insert_one(record)
+        print(f"[PROFILE] Account restored/created for: {search_id}")
+
+    return {"user": serialize_user(record)}
 
 
 # ---------------------------
@@ -596,13 +713,12 @@ async def create_order(payload: OrderRequest):
 
 
 @app.get("/orders/{user_email}")
-async def get_user_orders(user_email: EmailStr):
+async def get_user_orders(user_email: str):
     cursor = orders_col.find({"user_email": user_email}).sort("order_date", -1)
     orders = await cursor.to_list(length=100)
     for order in orders:
         order["_id"] = str(order["_id"])
     return orders
-
 
 @app.get("/admin/orders")
 async def get_all_orders():
@@ -612,6 +728,155 @@ async def get_all_orders():
     for order in orders:
         order["_id"] = str(order["_id"])
     return orders
+
+    return orders
+
+# ---------------------------
+# Cart & Favorites Endpoints
+# ---------------------------
+
+@app.get("/cart/{user_email}")
+async def get_cart(user_email: str):
+    cursor = cart_col.find({"user_email": user_email})
+    items = await cursor.to_list(length=100)
+    for item in items:
+        item["_id"] = str(item["_id"])
+    return items
+
+@app.post("/cart", status_code=201)
+async def add_to_cart(item: CartItem):
+    # Check if already in cart
+    existing = await cart_col.find_one({"user_email": item.user_email, "product_id": item.product_id})
+    if existing:
+        return {"message": "Item already in bag", "id": str(existing["_id"])}
+    
+    result = await cart_col.insert_one(item.dict())
+    return {"message": "Added to bag", "id": str(result.inserted_id)}
+
+@app.delete("/cart/{user_email}/{product_id}")
+async def remove_from_cart(user_email: str, product_id: str):
+    result = await cart_col.delete_one({"user_email": user_email, "product_id": product_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Item not found in bag")
+    return {"message": "Removed from bag"}
+
+@app.post("/cart/clear/{user_email}")
+async def clear_cart(user_email: str):
+    await cart_col.delete_many({"user_email": user_email})
+    return {"message": "Bag cleared"}
+
+@app.get("/favorites/{user_email}")
+async def get_favorites(user_email: str):
+    cursor = favorites_col.find({"user_email": user_email})
+    items = await cursor.to_list(length=100)
+    for item in items:
+        item["_id"] = str(item["_id"])
+    return items
+
+@app.post("/favorites", status_code=201)
+async def add_to_favorites(item: FavoriteItem):
+    existing = await favorites_col.find_one({"user_email": item.user_email, "product_id": item.product_id})
+    if existing:
+        return {"message": "Already in favorites", "id": str(existing["_id"])}
+    
+    result = await favorites_col.insert_one(item.dict())
+    return {"message": "Added to favorites", "id": str(result.inserted_id)}
+
+@app.delete("/favorites/{user_email}/{product_id}")
+async def remove_from_favorites(user_email: str, product_id: str):
+    result = await favorites_col.delete_one({"user_email": user_email, "product_id": product_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+    return {"message": "Removed from favorites"}
+
+# ---------------------------
+# Admin Customer Insights
+# ---------------------------
+
+@app.get("/admin/users", response_model=List[Dict[str, Any]])
+async def get_all_users():
+    cursor = users_col.find({}, {"password_hash": 0, "token": 0})
+    users = await cursor.to_list(length=1000)
+    for u in users:
+        u["_id"] = str(u["_id"])
+    return users
+
+@app.get("/admin/user-insights/{email}")
+async def get_user_insights(email: str):
+    # Fetch user info
+    user = await users_col.find_one({"email": email}, {"password_hash": 0, "token": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user["_id"] = str(user["_id"])
+
+    # Fetch cart
+    cart_cursor = cart_col.find({"user_email": email})
+    cart = await cart_cursor.to_list(length=100)
+    for item in cart:
+        item["_id"] = str(item["_id"])
+
+    # Fetch favorites
+    fav_cursor = favorites_col.find({"user_email": email})
+    favorites = await fav_cursor.to_list(length=100)
+    for item in favorites:
+        item["_id"] = str(item["_id"])
+
+    # Fetch orders
+    orders_cursor = orders_col.find({"user_email": email}).sort("order_date", -1)
+    orders = await orders_cursor.to_list(length=100)
+    for o in orders:
+        o["_id"] = str(o["_id"])
+
+    return {
+        "user": user,
+        "cart": cart,
+        "favorites": favorites,
+        "orders": orders
+    }
+
+# ---------------------------
+# Products CRUD
+# ---------------------------
+@app.get("/products", response_model=List[Dict[str, Any]])
+async def get_products():
+    cursor = products_col.find({})
+    products = await cursor.to_list(length=1000)
+    for p in products:
+        p["_id"] = str(p["_id"])
+    return products
+
+@app.post("/admin/products", status_code=201)
+async def add_product(product: ProductModel):
+    product_dict = product.dict()
+    result = await products_col.insert_one(product_dict)
+    return {"message": "Product added", "id": str(result.inserted_id)}
+
+@app.put("/admin/products/{product_id}")
+async def update_product(product_id: str, product: ProductModel):
+    from bson import ObjectId
+    try:
+        updated = await products_col.find_one_and_update(
+            {"_id": ObjectId(product_id)},
+            {"$set": product.dict()},
+            return_document=True
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Product not found")
+        updated["_id"] = str(updated["_id"])
+        return updated
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid ID or data")
+
+@app.delete("/admin/products/{product_id}")
+async def delete_product(product_id: str):
+    from bson import ObjectId
+    try:
+        result = await products_col.delete_one({"_id": ObjectId(product_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return {"message": "Product deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
 
 
 @app.post("/admin/knowledge/upload")

@@ -88,7 +88,13 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Google authentication failed");
+      if (!res.ok) {
+        let msg = "Google authentication failed";
+        if (data.detail) {
+          msg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+        }
+        throw new Error(msg);
+      }
 
       onAuthSuccess?.(data.user);
     } catch (err) {
@@ -130,9 +136,24 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
     setStep(2);
   };
 
+  const validatePhone = (num) => {
+    if (!num) return false;
+    const digits = num.replace(/\D/g, "");
+    const clean = (digits.startsWith("91") && digits.length === 12) ? digits.slice(2) : digits;
+    const regex = /^[6-9]\d{9}$/;
+    return regex.test(clean);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+
+    if (mode === "signup" && !validatePhone(form.contactDetails)) {
+      setError("Please enter a valid 10-digit Contact number");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -163,7 +184,17 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
       console.log("Auth Response:", data);
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to authenticate. Please check your credentials.");
+        let msg = "Unable to authenticate. Please check your credentials.";
+        if (data.detail) {
+          if (typeof data.detail === 'string') {
+            msg = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            msg = data.detail.map(err => err.msg).join(", ");
+          } else {
+            msg = JSON.stringify(data.detail);
+          }
+        }
+        throw new Error(msg);
       }
 
       onAuthSuccess?.(data.user);
@@ -384,6 +415,16 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
                   component="button"
                   type="button"
                   onClick={() => {
+                    const val = form.email.trim();
+                    const isEmail = val.includes("@");
+                    const isPhone = /^\d+$/.test(val.replace(/[\s\-\+]/g, ""));
+
+                    setForm(prev => ({
+                      ...prev,
+                      email: isEmail ? val : "",
+                      contactDetails: isPhone ? val : prev.contactDetails
+                    }));
+
                     setMode("signup");
                     setStep(2);
                     setError("");
@@ -553,13 +594,37 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
                 />
 
                 <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
+                  Email Address
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange("email")}
+                  placeholder="name@example.com"
+                  required
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      fontSize: "14px",
+                      bgcolor: "#FFFDF5",
+                      fontFamily: '"Outfit", sans-serif',
+                      "& fieldset": { borderColor: "rgba(76, 0, 19, 0.1)", borderRadius: "16px" },
+                      "&:hover fieldset": { borderColor: "#B38B00" },
+                      "&.Mui-focused fieldset": { borderColor: "#B38B00", borderWidth: "1.5px" },
+                    },
+                    "& .MuiOutlinedInput-input": { padding: "12px 16px" },
+                  }}
+                />
+
+                <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#4C0013", mb: "6px", fontFamily: '"Outfit", sans-serif' }}>
                   Contact Number
                 </Typography>
                 <TextField
                   fullWidth
                   value={form.contactDetails}
                   onChange={handleChange("contactDetails")}
-                  placeholder="Mobile number for delivery"
+                  placeholder="10-digit mobile number"
                   required
                   sx={{
                     mb: 2,

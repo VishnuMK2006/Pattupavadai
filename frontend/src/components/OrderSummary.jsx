@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -15,12 +15,15 @@ import {
 } from '@mui/material';
 import {
     ArrowBack,
-    Security,
-    InfoOutlined,
-    KeyboardArrowDown,
     KeyboardArrowUp,
+    KeyboardArrowDown,
     LocalShipping,
-    VolunteerActivism
+    VolunteerActivism,
+    LocationOn,
+    PhoneIphone,
+    Edit,
+    CheckCircle,
+    Security
 } from '@mui/icons-material';
 
 const luxuryColors = {
@@ -31,10 +34,10 @@ const luxuryColors = {
     grey: '#878787',
     green: '#388e3c',
     blue: '#2874f0',
-    background: '#F5F5F5' // Slightly grey for contract like the image
+    background: '#FFFBE6' // Match website ivory
 };
 
-export default function OrderSummary({ item, cartItems = [], onBack, onContinue }) {
+export default function OrderSummary({ user, item, cartItems = [], onBack, onContinue, onUpdateUser }) {
     // Determine if we are processing a single item or the whole cart
     const activeItems = item ? [item] : cartItems;
 
@@ -42,6 +45,25 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
     const [showFees, setShowFees] = useState(false);
     const [showDiscounts, setShowDiscounts] = useState(false);
     const [donation, setDonation] = useState(0);
+    const [isEditing, setIsEditing] = useState(false);
+
+    // Initialize with empty if it's a placeholder
+    const initialAddress = user?.shipping_address?.includes("Not provided") ? "" : (user?.shipping_address || '');
+    const initialContact = user?.contact_details?.includes("Not provided") ? "" : (user?.contact_details || '');
+
+    const [editAddress, setEditAddress] = useState(initialAddress);
+    const [editContact, setEditContact] = useState(initialContact);
+    const [addressError, setAddressError] = useState("");
+    const [contactError, setContactError] = useState("");
+
+    useEffect(() => {
+        if (!isEditing) {
+            setEditAddress(initialAddress);
+            setEditContact(initialContact);
+            setAddressError("");
+            setContactError("");
+        }
+    }, [user, isEditing, initialAddress, initialContact]);
 
     // Helpers
     const calculatePrice = (itm) => {
@@ -79,10 +101,61 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
     const deliveryDateStr = deliveryDate.toLocaleDateString('en-US', options);
 
+    const isAddressMissing = !user?.shipping_address || user?.shipping_address.includes("Not provided") || user?.shipping_address.trim() === "";
+    const isContactMissing = !user?.contact_details || user?.contact_details.includes("Not provided") || user?.contact_details.trim() === "";
+    const isReady = !isAddressMissing && !isContactMissing;
+
+    const handleSaveDetails = async () => {
+        setAddressError("");
+        setContactError("");
+
+        if (!editAddress.trim()) {
+            setAddressError("Please provide a shipping address.");
+            return;
+        }
+
+        if (!editContact.trim()) {
+            setContactError("Enter the valid mobile number");
+            return;
+        }
+
+        if (editAddress.includes("Not provided")) {
+            setAddressError("Please provide a valid address.");
+            return;
+        }
+
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(editContact.trim())) {
+            setContactError("Enter the valid mobile number");
+            return;
+        }
+
+        const API_BASE = "http://localhost:8000";
+        try {
+            const url = `${API_BASE}/auth/update-profile?email=${encodeURIComponent(user.email)}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: user.name, // Keep existing name
+                    shipping_address: editAddress,
+                    contact_details: editContact
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                onUpdateUser(data.user);
+                setIsEditing(false);
+            }
+        } catch (err) {
+            console.error("Failed to update profile:", err);
+        }
+    };
+
     return (
         <Box sx={{
             minHeight: '100vh',
-            bgcolor: '#F1F3F6', // Matching the greyish background from image
+            bgcolor: luxuryColors.background,
             pb: 8
         }}>
             {/* Header */}
@@ -104,10 +177,91 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
             </Box>
 
             <Container maxWidth="md" sx={{ mt: 2 }}>
+                {/* Deliver To Section */}
+                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: '8px', border: `1px solid ${isReady ? 'rgba(76, 0, 19, 0.1)' : 'rgba(211, 47, 47, 0.2)'}`, bgcolor: 'white' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+                        <Typography sx={{ fontSize: '11px', fontWeight: 900, color: luxuryColors.maroon, letterSpacing: '1px' }}>
+                            DELIVER TO:
+                        </Typography>
+                        {!isEditing && (
+                            <Button
+                                size="small"
+                                startIcon={<Edit sx={{ fontSize: 14 }} />}
+                                onClick={() => setIsEditing(true)}
+                                sx={{ color: luxuryColors.maroon, textTransform: 'none', fontWeight: 700 }}
+                            >
+                                Change
+                            </Button>
+                        )}
+                    </Stack>
 
-                {/* Delivery Section */}
-                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 0 }}>
-                    <Typography sx={{ fontSize: '16px', fontWeight: 600, mb: 0.5 }}>
+                    {!isEditing ? (
+                        <Box>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5 }}>
+                                <LocationOn sx={{ color: luxuryColors.gold, fontSize: 20, mt: 0.2 }} />
+                                <Box>
+                                    <Typography sx={{ fontWeight: 800, fontSize: '14px', color: '#111' }}>{user?.name}</Typography>
+                                    <Typography sx={{ fontSize: '14px', color: isAddressMissing ? '#d32f2f' : '#444', lineHeight: 1.4 }}>
+                                        {isAddressMissing ? "Please add shipping address" : user?.shipping_address}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <PhoneIphone sx={{ color: luxuryColors.gold, fontSize: 18 }} />
+                                <Typography sx={{ fontSize: '14px', fontWeight: 600, color: isContactMissing ? '#d32f2f' : '#444' }}>
+                                    {isContactMissing ? "Please add contact number" : user?.contact_details}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ) : (
+                        <Stack spacing={2.5}>
+                            <TextField
+                                label="Full Shipping Address"
+                                multiline
+                                rows={2}
+                                fullWidth
+                                value={editAddress}
+                                onChange={(e) => {
+                                    setEditAddress(e.target.value);
+                                    if (addressError) setAddressError("");
+                                }}
+                                error={!!addressError}
+                                helperText={addressError}
+                                sx={{ '& .MuiInputBase-root': { fontSize: '14px' } }}
+                            />
+                            <TextField
+                                label="Contact Number"
+                                fullWidth
+                                value={editContact}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                    setEditContact(val);
+                                    if (contactError) setContactError("");
+                                }}
+                                error={!!contactError}
+                                helperText={contactError}
+                                placeholder="Enter 10-digit mobile number"
+                                sx={{
+                                    '& .MuiInputBase-root': { fontSize: '14px' },
+                                    '& .MuiFormHelperText-root': { color: '#d32f2f', fontWeight: 700 }
+                                }}
+                            />
+                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                <Button size="small" onClick={() => setIsEditing(false)} sx={{ color: '#666', textTransform: 'none' }}>Cancel</Button>
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={handleSaveDetails}
+                                    sx={{ bgcolor: luxuryColors.maroon, px: 3, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#2a000a' } }}
+                                >
+                                    Save Details
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    )}
+                </Paper>
+                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: 'white' }}>
+                    <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1.5, color: '#666' }}>
                         Delivery by {deliveryDateStr}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
@@ -127,18 +281,18 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
                 </Paper>
 
                 {/* Open Box Delivery Banner */}
-                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 0, bgcolor: '#FFFBE6' }}>
+                <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: '12px', bgcolor: 'rgba(179, 139, 0, 0.05)', border: `1px solid rgba(179, 139, 0, 0.1)` }}>
                     <Stack direction="row" alignItems="flex-start" spacing={2}>
-                        <Box sx={{ bgcolor: '#FFC107', p: 0.5, borderRadius: '4px', display: 'flex' }}>
+                        <Box sx={{ bgcolor: luxuryColors.gold, p: 0.5, borderRadius: '6px', display: 'flex' }}>
                             <LocalShipping sx={{ color: 'white', fontSize: 20 }} />
                         </Box>
                         <Box>
-                            <Typography sx={{ fontWeight: 700, fontSize: '14px', color: '#B38B00' }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: '14px', color: luxuryColors.maroon, fontFamily: '"Outfit", sans-serif' }}>
                                 Rest assured with Open Box Delivery
                             </Typography>
-                            <Typography sx={{ fontSize: '12px', color: '#666', mt: 0.5, lineHeight: 1.4 }}>
-                                Delivery agent will open the package so you can check for correct product, damage or missing items. Share OTP to accept the delivery.
-                                <span style={{ color: '#2874F0', fontWeight: 600, marginLeft: '4px', cursor: 'pointer' }}>Why?</span>
+                            <Typography sx={{ fontSize: '12px', color: '#666', mt: 0.5, lineHeight: 1.5 }}>
+                                Delivery agent will open the package so you can check for correct product, damage or missing items.
+                                <span style={{ color: luxuryColors.blue, fontWeight: 700, marginLeft: '6px', cursor: 'pointer' }}>Learn more</span>
                             </Typography>
                         </Box>
                     </Stack>
@@ -147,9 +301,9 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
 
 
                 {/* Price Details */}
-                <Paper elevation={0} sx={{ borderRadius: 0 }}>
-                    <Box sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
-                        <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#878787', textTransform: 'uppercase' }}>
+                <Paper elevation={0} sx={{ borderRadius: '12px', bgcolor: 'white', overflow: 'hidden', border: '1px solid rgba(76, 0, 19, 0.05)' }}>
+                    <Box sx={{ p: 2, borderBottom: '1px solid #f8f8f8', bgcolor: 'rgba(76, 0, 19, 0.02)' }}>
+                        <Typography sx={{ fontSize: '14px', fontWeight: 800, color: luxuryColors.maroon, textTransform: 'uppercase', letterSpacing: '1px' }}>
                             Price Details
                         </Typography>
                     </Box>
@@ -237,25 +391,34 @@ export default function OrderSummary({ item, cartItems = [], onBack, onContinue 
                             <Typography sx={{ fontSize: '20px', fontWeight: 700 }}>{formatPrice(finalAmount)}</Typography>
                             <Typography sx={{ fontSize: '12px', color: luxuryColors.blue, fontWeight: 600, cursor: 'pointer' }}>View Price Details</Typography>
                         </Box>
-                        <Button
-                            variant="contained"
-                            onClick={onContinue}
-                            sx={{
-                                bgcolor: '#FFC200',
-                                color: 'black',
-                                px: 6,
-                                py: 1.5,
-                                fontWeight: 600,
-                                fontSize: '16px',
-                                textTransform: 'none',
-                                borderRadius: '2px', // Square-ish like the image
-                                width: { xs: '50%', sm: 'auto' },
-                                boxShadow: 'none',
-                                '&:hover': { bgcolor: '#FFD54F' }
-                            }}
-                        >
-                            Continue
-                        </Button>
+                        <Stack spacing={1} alignItems="flex-end">
+                            <Button
+                                variant="contained"
+                                disabled={!isReady || isEditing}
+                                onClick={onContinue}
+                                sx={{
+                                    bgcolor: luxuryColors.gold,
+                                    color: 'white',
+                                    px: 6,
+                                    py: 1.5,
+                                    fontWeight: 800,
+                                    fontSize: '16px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    borderRadius: '50px',
+                                    boxShadow: '0 8px 16px rgba(179, 139, 0, 0.2)',
+                                    '&:hover': { bgcolor: '#C98D15', boxShadow: '0 10px 20px rgba(179, 139, 0, 0.3)' },
+                                    '&:disabled': { bgcolor: '#ccc', color: '#fff' }
+                                }}
+                            >
+                                {isReady ? 'Continue to Payment' : 'Fill Details to Continue'}
+                            </Button>
+                            {!isReady && !isEditing && (
+                                <Typography sx={{ fontSize: '10px', color: '#d32f2f', fontWeight: 700 }}>
+                                    * Please update your address and contact number
+                                </Typography>
+                            )}
+                        </Stack>
                     </Stack>
                 </Container>
             </Box>

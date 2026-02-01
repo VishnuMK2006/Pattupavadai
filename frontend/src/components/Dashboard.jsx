@@ -128,7 +128,7 @@ function OrderCard({ order }) {
                 src={`/images/orders/${order._id}_${index}.png`}
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = "https://placehold.co/300x300?text=Heirloom+Piece";
+                  e.target.src = item.image || item.preview_url || "https://placehold.co/300x300?text=Heirloom+Piece";
                 }}
                 sx={{
                   width: 120,

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Scene from "./components/Scene";
 import AuthForm from "./components/AuthForm";
-import ProductSelect from "./components/ProductSelect";
 import LandingPage from "./components/LandingPage";
 import Sidebar from "./components/Sidebar";
 import AdminPanel from "./components/AdminPanel";
@@ -14,6 +13,9 @@ import AboutPattupavadai from "./components/AboutPattupavadai";
 import Favorites from "./components/Favorites";
 import CartPage from "./components/CartPage";
 import OrderSummary from "./components/OrderSummary";
+import CompleteProfileModal from "./components/CompleteProfileModal";
+import UserProfileModal from "./components/UserProfileModal";
+import ProductDetail from "./components/ProductDetail";
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
@@ -72,12 +74,14 @@ function App() {
   const [favorites, setFavorites] = useState([]);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [view, setView] = useState("shop");
-  const [previousView, setPreviousView] = useState("shop");
+  const [view, setView] = useState("about");
+  const [previousView, setPreviousView] = useState("about");
 
   const [show3DView, setShow3DView] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [buyingItem, setBuyingItem] = useState(null);
+  const [isCompleteProfileOpen, setIsCompleteProfileOpen] = useState(false);
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
 
   // Generated product image state
   const [generatedProductImage, setGeneratedProductImage] = useState(null);
@@ -85,7 +89,57 @@ function App() {
   const [showAddToCartSuccess, setShowAddToCartSuccess] = useState(false);
   const [cartSuccessMsg, setCartSuccessMsg] = useState("Added to cart successfully! 🎉");
   const [showAddToFavSuccess, setShowAddToFavSuccess] = useState(false);
+  const [favSuccessMsg, setFavSuccessMsg] = useState('Added to Wishlist');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [liveProducts, setLiveProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const response = await fetch(`${API_BASE}/products`);
+      if (!response.ok) throw new Error("Failed to fetch products");
+      const data = await response.json();
+      setLiveProducts(data);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchUserCart = async (email) => {
+    try {
+      const response = await fetch(`${API_BASE}/cart/${email}`);
+      const data = await response.json();
+      if (response.ok) setCart(data);
+    } catch (err) {
+      console.error("Error fetching cart:", err);
+    }
+  };
+
+  const fetchUserFavorites = async (email) => {
+    try {
+      const response = await fetch(`${API_BASE}/favorites/${email}`);
+      const data = await response.json();
+      if (response.ok) setFavorites(data);
+    } catch (err) {
+      console.error("Error fetching favorites:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (user && user.email !== "admin@gmail.com") {
+      fetchUserCart(user.email);
+      fetchUserFavorites(user.email);
+    }
+  }, [user]);
 
   const calculatePrice = (item) => {
     if (!item.price) return 1500;
@@ -118,6 +172,16 @@ function App() {
         const parsed = JSON.parse(saved);
         if (parsed?.email && parsed?.token) {
           setUser(parsed);
+          // Check if admin and set appropriate view
+          if (parsed.email === "admin@gmail.com") {
+            setView('admin');
+          } else {
+            setView('about');
+            // Check if profile needs completion
+            if (parsed.shipping_address?.includes("Not provided") || parsed.contact_details?.includes("Not provided")) {
+              setIsCompleteProfileOpen(true);
+            }
+          }
         }
       }
     } catch (err) {
@@ -178,41 +242,54 @@ function App() {
     }
   };
 
-  const addToCart = () => {
-    if (!activeProduct) return;
-    const error = validateSelection();
-    if (error) {
-      alert(error);
-      return;
+  const addToCart = async (productWithDesign = null) => {
+    const productToUse = productWithDesign || activeProduct;
+    if (!productToUse) return;
+
+    // Only check design selection if it's the custom designable product
+    if (!productWithDesign) {
+      const error = validateSelection();
+      if (error) {
+        alert(error);
+        return;
+      }
     }
 
     const newItem = {
-      product_id: activeProduct.id,
-      product_name: activeProduct.name,
-      fabric_type: selectedFabricType,
-      top_style: selectedTopStyle,
-      bottom_style: selectedBottomStyle,
-      dress_type: selectedDressType,
-      sleeve_type: selectedSleeveType,
-      neck_design: selectedNeckDesign,
-      border_design: selectedBorderDesign,
-      top_color: topColor,
-      bottom_color: bottomColor,
-      accent: activeProduct.accent,
-      preview_url: generatedProductImage || activeProduct.image
+      user_email: user.email,
+      product_id: productToUse.id || productToUse._id,
+      product_name: productToUse.name,
+      fabric_type: selectedFabricType || productToUse.fabric_type,
+      top_style: selectedTopStyle || productToUse.top_style,
+      bottom_style: selectedBottomStyle || productToUse.bottom_style,
+      dress_type: selectedDressType || productToUse.dress_type,
+      sleeve_type: selectedSleeveType || productToUse.sleeve_type,
+      neck_design: selectedNeckDesign || productToUse.neck_design,
+      border_design: selectedBorderDesign || productToUse.border_design,
+      top_color: topColor || productToUse.top_color,
+      bottom_color: bottomColor || productToUse.bottom_color,
+      accent: productToUse.accent,
+      preview_url: generatedProductImage || productToUse.image
     };
 
     const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === newItem.product_id);
 
     if (isAlreadyInCart) {
-      alert("This item is already in your bag.");
       return;
     }
 
-    setCart([...cart, newItem]);
-    setCartSuccessMsg("Added to bag successfully! 🎉");
-    setShowAddToCartSuccess(true);
-    setTimeout(() => setShowAddToCartSuccess(false), 2000);
+    try {
+      const resp = await fetch(`${API_BASE}/cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newItem)
+      });
+      if (resp.ok) {
+        setCart([...cart, newItem]);
+      }
+    } catch (err) {
+      console.error("Cart sync error:", err);
+    }
   };
 
   const handleBuyNow = () => {
@@ -235,7 +312,8 @@ function App() {
       border_design: selectedBorderDesign,
       top_color: topColor,
       bottom_color: bottomColor,
-      accent: activeProduct.accent
+      accent: activeProduct.accent,
+      preview_url: generatedProductImage || activeProduct.image
     };
 
     setCart([...cart, newItem]);
@@ -245,18 +323,15 @@ function App() {
     setView('order-summary');
   };
 
-  const addToFavorites = () => {
-    if (!activeProduct) return;
-    const error = validateSelection();
-    if (error) {
-      alert(error);
-      return;
-    }
+  const addToFavorites = async (productWithDesign = null) => {
+    const productToUse = productWithDesign || activeProduct;
+    if (!productToUse) return;
 
     const newItem = {
-      product_id: activeProduct.id,
-      product_name: activeProduct.name,
-      fabric_type: selectedFabricType,
+      user_email: user.email,
+      product_id: productToUse.id || productToUse._id,
+      product_name: productToUse.name,
+      fabric_type: selectedFabricType || productToUse.fabric_type,
       top_style: selectedTopStyle,
       bottom_style: selectedBottomStyle,
       dress_type: selectedDressType,
@@ -265,53 +340,43 @@ function App() {
       border_design: selectedBorderDesign,
       top_color: topColor,
       bottom_color: bottomColor,
-      accent: activeProduct.accent,
-      preview_url: generatedProductImage || activeProduct.image
+      accent: productToUse.accent,
+      preview_url: generatedProductImage || productToUse.image
     };
 
-    setFavorites([...favorites, newItem]);
-    setShowAddToFavSuccess(true);
-    setTimeout(() => setShowAddToFavSuccess(false), 2000);
+    try {
+      const resp = await fetch(`${API_BASE}/favorites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newItem)
+      });
+      if (resp.ok) {
+        setFavorites([...favorites, newItem]);
+        setFavSuccessMsg('Added to Wishlist');
+        setShowAddToFavSuccess(true);
+        setTimeout(() => setShowAddToFavSuccess(false), 2000);
+      }
+    } catch (err) {
+      console.error("Fav sync error:", err);
+    }
   };
 
-  const handleMoveToBag = (item, index) => {
-    const itemId = item.id || item.product_id;
-    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === itemId);
+  const handleMoveToBag = async (item, index) => {
+    const productId = item.id || item.product_id;
+    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === productId);
 
     if (isAlreadyInCart) {
       alert("This item is already in your bag.");
       return;
     }
 
-    setCart([...cart, item]);
-    const newFavs = [...favorites];
-    newFavs.splice(index, 1);
-    setFavorites(newFavs);
+    await addToCart(item);
+    await handleRemoveFavorite(productId);
     setIsCartOpen(true);
   };
 
-  const handleAddToCartFromFav = (item) => {
-    const itemId = item.id || item.product_id;
-    const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === itemId);
-
-    if (isAlreadyInCart) {
-      setCartSuccessMsg("This item is already in your bag.");
-      setShowAddToCartSuccess(true);
-      setTimeout(() => setShowAddToCartSuccess(false), 2000);
-      return false;
-    }
-
-    const cartItem = {
-      ...item,
-      product_id: itemId,
-      fabric_type: item.fabric_type || "Standard",
-      preview_url: item.preview_url || item.image
-    };
-
-    setCart(prev => [...prev, cartItem]);
-    setCartSuccessMsg("Added to bag successfully! 🎉");
-    setShowAddToCartSuccess(true);
-    setTimeout(() => setShowAddToCartSuccess(false), 2000);
+  const handleAddToCartFromFav = async (item) => {
+    await addToCart(item);
     return true;
   };
 
@@ -320,24 +385,67 @@ function App() {
     setView('order-summary');
   };
 
-  const handleRemoveFavorite = (index) => {
-    const newFavs = [...favorites];
-    newFavs.splice(index, 1);
-    setFavorites(newFavs);
+  const handleRemoveFavorite = async (indexOrId) => {
+    let productId;
+    if (typeof indexOrId === 'number') {
+      const item = favorites[indexOrId];
+      productId = item.product_id || item.id;
+    } else {
+      productId = indexOrId;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE}/favorites/${user.email}/${productId}`, {
+        method: 'DELETE'
+      });
+      if (resp.ok) {
+        setFavorites(prev => prev.filter(item => (item.id || item.product_id) !== productId));
+        setFavSuccessMsg('Removed from the Wishlist');
+        setShowAddToFavSuccess(true);
+        setTimeout(() => setShowAddToFavSuccess(false), 2000);
+      }
+    } catch (err) {
+      console.error("Remove fav sync error:", err);
+    }
+  };
+
+  const handleRemoveFromCart = async (productId) => {
+    try {
+      const resp = await fetch(`${API_BASE}/cart/${user.email}/${productId}`, {
+        method: 'DELETE'
+      });
+      if (resp.ok) {
+        setCart(prev => prev.filter(item => (item.id || item.product_id) !== productId));
+      }
+    } catch (err) {
+      console.error("Remove cart sync error:", err);
+    }
   };
 
   const handlePaymentSuccess = async () => {
     if (!user) return;
     const itemsToBuy = buyingItem ? [buyingItem] : cart;
-    const totalAmount = itemsToBuy.reduce((sum, item) => sum + calculatePrice(item), 0);
-    const sanitizedItems = itemsToBuy.map(({ preview_url, ...rest }) => rest);
+
+    // Calculate total including the ₹7 fee shown in OrderSummary
+    const itemTotal = itemsToBuy.reduce((sum, item) => sum + calculatePrice(item), 0);
+    const totalAmount = itemTotal + 7;
+
+    // Ensure all items have product_id and product_name (backend requirements)
+    const sanitizedItems = itemsToBuy.map(({ id, name, product_id, product_name, _id, ...rest }) => ({
+      product_id: String(product_id || id || _id),
+      product_name: String(product_name || name || "Pattupavadai Product"),
+      image: rest.image || rest.preview_url,
+      ...rest
+    }));
 
     const orderPayload = {
-      user_email: user.email,
+      user_email: user.email.trim(),
       items: sanitizedItems,
       total_amount: totalAmount,
       order_date: new Date().toISOString()
     };
+
+    console.log("Submitting order:", orderPayload);
 
     try {
       const response = await fetch("http://localhost:8000/orders", {
@@ -349,8 +457,10 @@ function App() {
       if (response.ok) {
         if (buyingItem) {
           const itemId = buyingItem.id || buyingItem.product_id;
-          setCart(prev => prev.filter(item => (item.id || item.product_id) !== itemId));
+          handleRemoveFromCart(itemId);
         } else {
+          // Clear cart in DB
+          await fetch(`${API_BASE}/cart/clear/${user.email}`, { method: 'POST' });
           setCart([]);
         }
         setBuyingItem(null);
@@ -453,7 +563,29 @@ function App() {
     localStorage.removeItem("pp_user");
   };
 
-  const activeProduct = products.find((p) => p.id === selectedProduct) || null;
+  const activeProduct = useMemo(() => {
+    // Check hardcoded products first (designable ones)
+    const hardcoded = products.find((p) => p.id === selectedProduct);
+    if (hardcoded) return hardcoded;
+
+    // Then check dynamic ones
+    const dynamic = liveProducts.find((p) => p._id === selectedProduct);
+    if (dynamic) {
+      return {
+        ...dynamic,
+        id: dynamic._id,
+        name: dynamic.name,
+        blurb: dynamic.blurb,
+        image: dynamic.card_image,
+        price: dynamic.price?.toString().startsWith('₹') ? dynamic.price : `₹${dynamic.price}`,
+        originalPrice: dynamic.original_price?.toString().startsWith('₹') ? dynamic.original_price : `₹${dynamic.original_price}`,
+        accent: dynamic.accent_color,
+        isDynamic: true
+      };
+    }
+    return null;
+  }, [selectedProduct, liveProducts]);
+
   const activeFabric = useMemo(
     () => fabrics.find((f) => f.id === selectedFabric) || null,
     [selectedFabric]
@@ -463,7 +595,7 @@ function App() {
     setSelectedProduct(product.id);
     setSelectedFabric(null);
     setIsPaymentOpen(false); // Reset payment modal
-    setView('shop'); // Ensure we are on shop/design view
+    setView('product-detail'); // Navigate to detail page first
   };
 
   const handleChangeProduct = () => {
@@ -471,6 +603,7 @@ function App() {
     setSelectedFabric(null);
     setSelectedTopStyle("t1");
     setSelectedBottomStyle("p1");
+    setView('about');
   };
 
   const handleFabricSelect = (fabricId) => {
@@ -488,53 +621,54 @@ function App() {
   const handleAuthSuccess = (userData) => {
     setUser(userData);
     localStorage.setItem("pp_user", JSON.stringify(userData));
-  };
 
-  if (!user) {
-    return <LandingPage onAuthSuccess={handleAuthSuccess} />;
-  }
-
-  if (user.email === "admin@gmail.com") {
-    return <AdminPanel onSignOut={handleSignOut} />;
-  }
-
-  const handleToggleFavorite = (product) => {
-    setFavorites((prev) => {
-      const isFav = prev.find((p) => p.id === product.id);
-      if (isFav) {
-        return prev.filter((p) => p.id !== product.id);
+    // Check if admin and route to admin panel
+    if (userData.email === "admin@gmail.com") {
+      setView('admin');
+    } else {
+      setView('about');
+      // Check if profile needs completion (social login users)
+      if (userData.shipping_address?.includes("Not provided") || userData.contact_details?.includes("Not provided")) {
+        setIsCompleteProfileOpen(true);
       }
-      setShowAddToFavSuccess(true);
-      return [...prev, product];
-    });
+    }
   };
 
-  // --- RENDERING VIEWS ---
+  const handleProfileComplete = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("pp_user", JSON.stringify(updatedUser));
+    setIsCompleteProfileOpen(false);
+  };
 
-  if (view === 'about') {
-    return (
-      <AboutPattupavadai
+  const handleToggleFavorite = async (product) => {
+    const isFav = favorites.find((p) => (p.id || p.product_id) === (product.id || product._id));
+    const productId = product.id || product._id;
+
+    if (isFav) {
+      await handleRemoveFavorite(productId);
+    } else {
+      await addToFavorites(product);
+    }
+  };
+
+  // --- VIEW RESOLUTION ---
+  let mainContent = null;
+
+  if (!user || view === 'landing') {
+    mainContent = (
+      <LandingPage
         user={user}
-        onBack={() => setView('shop')}
-        onSelect={(product) => handleProductSelect(product)}
-        onSignOut={handleSignOut}
-        onShowFavorites={navigateToFavorites}
-        onShowCart={navigateToCart}
-        onShowOrders={() => setView('dashboard')}
-        favorites={favorites}
-        onToggleFavorite={handleToggleFavorite}
-        onAddToCart={handleAddToCartFromFav}
-        cart={cart}
+        onAuthSuccess={handleAuthSuccess}
+        onGoToApp={() => setView('about')}
+        products={liveProducts}
       />
     );
-  }
-
-  if (view === 'dashboard') {
-    return <Dashboard user={user} onBack={() => setView('shop')} />;
-  }
-
-  if (view === 'favorites') {
-    return (
+  } else if (user?.email === "admin@gmail.com" && view === 'admin') {
+    return <AdminPanel onSignOut={handleSignOut} />; // No Chatbot here
+  } else if (view === 'dashboard') {
+    mainContent = <Dashboard user={user} onBack={() => setView('about')} />;
+  } else if (view === 'favorites') {
+    mainContent = (
       <Favorites
         favorites={favorites}
         onBack={() => setView(previousView)}
@@ -545,16 +679,19 @@ function App() {
         cart={cart}
       />
     );
-  }
-
-  if (view === 'order-summary') {
-    return (
+  } else if (view === 'order-summary') {
+    mainContent = (
       <>
         <OrderSummary
+          user={user}
           item={buyingItem}
           cartItems={cart}
-          onBack={() => setView(previousView || 'shop')}
+          onBack={() => setView(previousView || 'about')}
           onContinue={() => setIsPaymentOpen(true)}
+          onUpdateUser={(updatedUser) => {
+            setUser(updatedUser);
+            localStorage.setItem("pp_user", JSON.stringify(updatedUser));
+          }}
         />
         <PaymentModal
           open={isPaymentOpen}
@@ -564,17 +701,14 @@ function App() {
         />
       </>
     );
-  }
-
-  if (view === 'cart') {
-    return (
+  } else if (view === 'cart') {
+    mainContent = (
       <CartPage
         cartItems={cart}
         onBack={() => setView(previousView)}
         onRemove={(index) => {
-          const newCart = [...cart];
-          newCart.splice(index, 1);
-          setCart(newCart);
+          const item = cart[index];
+          handleRemoveFromCart(item.product_id || item._id || item.id);
         }}
         onCheckout={() => {
           setBuyingItem(null);
@@ -586,28 +720,116 @@ function App() {
         }}
       />
     );
-  }
-
-  if (!selectedProduct) {
-    return (
-      <ProductSelect
+  } else if (view === 'product-detail' && activeProduct) {
+    mainContent = (
+      <ProductDetail
+        product={activeProduct}
+        onBack={() => setView('about')}
+        onAddToCart={handleAddToCartFromFav}
+        onBuyNow={(item) => {
+          setBuyingItem(item);
+          setPreviousView('product-detail');
+          setView('order-summary');
+        }}
+        onCustomize={() => setView('shop')}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
+        onShowFavorites={() => { setPreviousView('product-detail'); setView('favorites'); }}
+        onShowCart={() => { setPreviousView('product-detail'); setView('cart'); }}
+        cart={cart}
         user={user}
-        products={products}
-        onSelect={handleProductSelect}
-        onKnowMore={() => setView('about')}
+        onSignOut={handleSignOut}
+        onShowOrders={() => { setPreviousView('product-detail'); setView('dashboard'); }}
+        onShowDetails={() => setIsUserDetailsOpen(true)}
+      />
+    );
+  } else if (view === 'about' || !selectedProduct) {
+    mainContent = (
+      <AboutPattupavadai
+        user={user}
+        onBack={() => setView('landing')}
+        onSelect={(product) => handleProductSelect(product)}
+        onSignOut={handleSignOut}
         onShowFavorites={navigateToFavorites}
         onShowCart={navigateToCart}
         onShowOrders={() => setView('dashboard')}
-        onSignOut={handleSignOut}
         favorites={favorites}
-        cart={cart}
-        onAddToCart={addToCart}
-        onBuyNow={handleBuyNow}
         onToggleFavorite={handleToggleFavorite}
+        onAddToCart={handleAddToCartFromFav}
+        cart={cart}
+        productsList={liveProducts}
+        onUpdateUser={(updatedUser) => {
+          setUser(updatedUser);
+          localStorage.setItem("pp_user", JSON.stringify(updatedUser));
+        }}
       />
     );
   }
 
+  if (mainContent) {
+    return (
+      <div className="app-container">
+        {mainContent}
+        <Chatbot />
+        <CompleteProfileModal
+          open={isCompleteProfileOpen}
+          user={user}
+          onComplete={handleProfileComplete}
+          onSkip={() => setIsCompleteProfileOpen(false)}
+        />
+
+        {/* Global Snackbars placed here to be visible in all mainContent views */}
+        <Snackbar
+          open={showAddToCartSuccess}
+          autoHideDuration={2000}
+          onClose={() => setShowAddToCartSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ zIndex: 9999 }}
+        >
+          <Alert
+            onClose={() => setShowAddToCartSuccess(false)}
+            severity="success"
+            variant="filled"
+            sx={{
+              bgcolor: '#2ecc71',
+              color: '#FFFFFF',
+              fontWeight: 600,
+              fontSize: '14px',
+              boxShadow: '0 4px 12px rgba(46, 204, 113, 0.4)',
+            }}
+          >
+            {cartSuccessMsg}
+          </Alert>
+        </Snackbar>
+
+        <Snackbar
+          open={showAddToFavSuccess}
+          autoHideDuration={2000}
+          onClose={() => setShowAddToFavSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ zIndex: 9999 }}
+        >
+          <Alert
+            onClose={() => setShowAddToFavSuccess(false)}
+            severity="success"
+            variant="filled"
+            sx={{
+              bgcolor: '#B38B00',
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '14px',
+              boxShadow: '0 4px 12px rgba(179, 139, 0, 0.4)',
+              '& .MuiAlert-icon': { color: 'white' },
+            }}
+          >
+            {favSuccessMsg}
+          </Alert>
+        </Snackbar>
+      </div>
+    );
+  }
+
+  // --- SHOP / DESIGNER VIEW ---
   const fabricModels = {
     top: activeFabric?.modelTop || `/models/${selectedTopStyle}.glb`,
     bottom: activeFabric?.modelBottom || `/models/${selectedBottomStyle}.glb`,
@@ -630,8 +852,11 @@ function App() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton
               onClick={() => {
-                if (view === 'dashboard') setView('shop');
-                else setSelectedProduct(null);
+                if (view === 'dashboard') setView('about');
+                else {
+                  setSelectedProduct(null);
+                  setView('about');
+                }
               }}
               sx={{
                 color: '#4C0013',
@@ -645,7 +870,7 @@ function App() {
               component="img"
               src="/images/logo.jpg"
               sx={{ height: 40, width: 40, borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }}
-              onClick={() => setSelectedProduct(null)}
+              onClick={() => { setSelectedProduct(null); setView('about'); }}
             />
             <Typography
               variant="h5"
@@ -655,7 +880,7 @@ function App() {
                 fontFamily: '"Playfair Display", serif',
                 cursor: 'pointer',
               }}
-              onClick={() => setSelectedProduct(null)}
+              onClick={() => { setSelectedProduct(null); setView('about'); }}
             >
               Kuzhavi<span style={{ color: '#E3A018' }}>_Kids</span>
             </Typography>
@@ -737,6 +962,10 @@ function App() {
                   <ShoppingBag sx={{ fontSize: 20, mr: 2, color: '#B38B00' }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>My Orders</Typography>
                 </MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); setIsUserDetailsOpen(true); }}>
+                  <Person sx={{ fontSize: 20, mr: 2, color: '#B38B00' }} />
+                  <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>My Details</Typography>
+                </MenuItem>
                 <MenuItem onClick={() => { handleProfileMenuClose(); handleSignOut(); }} sx={{ color: '#d32f2f' }}>
                   <Logout sx={{ fontSize: 20, mr: 2 }} />
                   <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
@@ -793,8 +1022,15 @@ function App() {
           </Box>
 
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#4C0013', mb: 3 }}>
-            ₹499 <span style={{ fontSize: '16px', color: '#999', textDecoration: 'line-through', marginLeft: '10px' }}>₹2,999</span>
-            <span style={{ fontSize: '16px', color: '#2ecc71', marginLeft: '10px' }}>83% off</span>
+            ₹{activeProduct?.price || 499}
+            {activeProduct?.original_price && (
+              <span style={{ fontSize: '16px', color: '#999', textDecoration: 'line-through', marginLeft: '10px' }}>
+                ₹{activeProduct.original_price}
+              </span>
+            )}
+            {activeProduct?.discount && (
+              <span style={{ fontSize: '16px', color: '#2ecc71', marginLeft: '10px' }}>{activeProduct.discount}</span>
+            )}
           </Typography>
 
           <Divider sx={{ mb: 4 }} />
@@ -811,10 +1047,32 @@ function App() {
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
+              <Typography variant="body2"><strong>Freebie</strong> Free Silk Scrunchie on orders above ₹2000</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <CheckCircle sx={{ color: '#2ecc71', fontSize: 18 }} />
               <Typography variant="body2"><strong>Special Price</strong> Get extra ₹1500 off (price inclusive of cashback/coupon)</Typography>
             </Box>
           </Stack>
 
+          {activeProduct?.isDynamic && (
+            <>
+              <Divider sx={{ mb: 4 }} />
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Product Highlights</Typography>
+              <ul style={{ paddingLeft: '20px', color: '#444', marginBottom: '24px' }}>
+                {(activeProduct.highlights || []).map((h, i) => (
+                  <li key={i} style={{ marginBottom: '8px', fontSize: '14px' }}>{h}</li>
+                ))}
+              </ul>
+
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Description</Typography>
+              <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, mb: 4 }}>
+                {activeProduct.description}
+              </Typography>
+            </>
+          )}
+
+          <Divider sx={{ mb: 4 }} />
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, fontFamily: '"Playfair Display", serif' }}>Product Description</Typography>
           <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, mb: 4 }}>
             This exquisite {activeProduct?.name} is a testament to traditional craftsmanship, tailored with premium fabrics to ensure your little one looks regal and feels comfortable at every celebration.
@@ -884,20 +1142,20 @@ function App() {
         open={showAddToCartSuccess}
         autoHideDuration={2000}
         onClose={() => setShowAddToCartSuccess(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ mt: 8 }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
       >
         <Alert
           onClose={() => setShowAddToCartSuccess(false)}
           severity="success"
           variant="filled"
           sx={{
-            bgcolor: '#2ecc71',
-            color: '#FFFFFF',
+            bgcolor: '#B38B00',
+            color: 'white',
             fontWeight: 600,
             fontSize: '14px',
-            boxShadow: '0 4px 12px rgba(46, 204, 113, 0.4)',
-            zIndex: 9999,
+            boxShadow: '0 4px 12px rgba(179, 139, 0, 0.4)',
+            '& .MuiAlert-icon': { color: 'white' },
           }}
         >
           {cartSuccessMsg}
@@ -908,8 +1166,8 @@ function App() {
         open={showAddToFavSuccess}
         autoHideDuration={2000}
         onClose={() => setShowAddToFavSuccess(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ mt: 8 }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ zIndex: 9999 }}
       >
         <Alert
           onClose={() => setShowAddToFavSuccess(false)}
@@ -924,12 +1182,28 @@ function App() {
             '& .MuiAlert-icon': { color: 'white' },
           }}
         >
-          Saved to Favourites!
+          {favSuccessMsg}
         </Alert>
       </Snackbar>
 
       <Chatbot />
 
+      <CompleteProfileModal
+        open={isCompleteProfileOpen}
+        user={user}
+        onComplete={handleProfileComplete}
+        onSkip={() => setIsCompleteProfileOpen(false)}
+      />
+
+      <UserProfileModal
+        open={isUserDetailsOpen}
+        user={user}
+        onUpdate={(updatedUser) => {
+          setUser(updatedUser);
+          localStorage.setItem("pp_user", JSON.stringify(updatedUser));
+        }}
+        onClose={() => setIsUserDetailsOpen(false)}
+      />
     </div>
   );
 }
