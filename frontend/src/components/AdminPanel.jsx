@@ -25,6 +25,17 @@ import {
     Radio,
     LinearProgress,
     IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    Checkbox,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
 } from '@mui/material';
 import {
     CloudUpload,
@@ -35,8 +46,11 @@ import {
     Image as ImageIcon,
     ArrowBack,
     Person,
+    Delete as DeleteIcon,
+    Chat,
 } from '@mui/icons-material';
 import { Menu, MenuItem, Divider as MuiDivider, Avatar } from '@mui/material';
+import Chatbot from './Chatbot';
 
 const luxuryColors = {
     maroon: '#4C0013',
@@ -65,6 +79,12 @@ const AdminPanel = ({ onSignOut }) => {
     const [knowledgeElapsed, setKnowledgeElapsed] = useState(0);
     const [knowledgeRemaining, setKnowledgeRemaining] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [chatbotOpen, setChatbotOpen] = useState(false);
+    const [knowledgeDocuments, setKnowledgeDocuments] = useState([]);
+    const [loadingDocuments, setLoadingDocuments] = useState(false);
+    const [selectedDocuments, setSelectedDocuments] = useState([]);
     const uploadStartRef = useRef(null);
 
     const handleProfileMenuOpen = (event) => {
@@ -191,6 +211,103 @@ const AdminPanel = ({ onSignOut }) => {
             setKnowledgeUploading(false);
             resetUploadMetrics();
         }
+    };
+
+    const fetchKnowledgeDocuments = async () => {
+        setLoadingDocuments(true);
+        try {
+            const response = await fetch(`${API_BASE}/admin/knowledge/list`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch knowledge documents');
+            }
+            const data = await response.json();
+            setKnowledgeDocuments(data.documents || []);
+        } catch (err) {
+            console.error(err);
+            setKnowledgeStatus({ type: 'error', message: 'Failed to load documents' });
+        } finally {
+            setLoadingDocuments(false);
+        }
+    };
+
+    const handleOpenDeleteDialog = () => {
+        setDeleteDialogOpen(true);
+        setSelectedDocuments([]);
+        fetchKnowledgeDocuments();
+    };
+
+    const handleDeleteKnowledgeBase = async () => {
+        setDeleting(true);
+        try {
+            if (selectedDocuments.length === 0) {
+                // Delete all
+                const response = await fetch(`${API_BASE}/admin/knowledge/delete`, {
+                    method: 'DELETE',
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || 'Failed to delete knowledge base');
+                }
+
+                const data = await response.json();
+                setKnowledgeStatus({
+                    type: 'success',
+                    message: `All knowledge base deleted. ${data.deleted_count} chunks removed.`,
+                });
+            } else {
+                // Delete selected documents
+                let totalDeleted = 0;
+                for (const docSource of selectedDocuments) {
+                    const response = await fetch(`${API_BASE}/admin/knowledge/delete?source=${encodeURIComponent(docSource)}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.detail || `Failed to delete ${docSource}`);
+                    }
+
+                    const data = await response.json();
+                    totalDeleted += data.deleted_count;
+                }
+
+                setKnowledgeStatus({
+                    type: 'success',
+                    message: `Deleted ${selectedDocuments.length} document(s). ${totalDeleted} chunks removed.`,
+                });
+            }
+            
+            setDeleteDialogOpen(false);
+            setSelectedDocuments([]);
+        } catch (err) {
+            setKnowledgeStatus({ type: 'error', message: err.message });
+            setDeleteDialogOpen(false);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const toggleDocumentSelection = (docSource) => {
+        setSelectedDocuments(prev => {
+            if (prev.includes(docSource)) {
+                return prev.filter(s => s !== docSource);
+            } else {
+                return [...prev, docSource];
+            }
+        });
+    };
+
+    const formatDateTime = (timestamp) => {
+        if (!timestamp) return 'N/A';
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const handleImageChange = (e) => {
@@ -480,6 +597,54 @@ const AdminPanel = ({ onSignOut }) => {
                             >
                                 {knowledgeUploading ? 'Processing...' : 'Process PDF Document'}
                             </Button>
+
+                            <Button
+                                variant="outlined"
+                                startIcon={<DeleteIcon />}
+                                onClick={handleOpenDeleteDialog}
+                                disabled={knowledgeUploading || deleting}
+                                sx={{
+                                    color: '#d32f2f',
+                                    borderColor: '#d32f2f',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    py: 1.5,
+                                    borderRadius: '50px',
+                                    fontFamily: '"Outfit", sans-serif',
+                                    '&:hover': {
+                                        bgcolor: 'rgba(211, 47, 47, 0.04)',
+                                        borderColor: '#c62828',
+                                    },
+                                    '&:disabled': {
+                                        borderColor: 'rgba(211, 47, 47, 0.3)',
+                                        color: 'rgba(211, 47, 47, 0.3)',
+                                    }
+                                }}
+                            >
+                                Delete Knowledge Base
+                            </Button>
+
+                            <Button
+                                variant="contained"
+                                startIcon={<Chat />}
+                                onClick={() => setChatbotOpen(true)}
+                                sx={{
+                                    bgcolor: luxuryColors.maroon,
+                                    color: '#FFFFFF',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    py: 1.5,
+                                    borderRadius: '50px',
+                                    fontFamily: '"Outfit", sans-serif',
+                                    boxShadow: '0 4px 16px rgba(76, 0, 19, 0.3)',
+                                    '&:hover': {
+                                        bgcolor: '#3a000e',
+                                        boxShadow: '0 6px 20px rgba(76, 0, 19, 0.4)',
+                                    }
+                                }}
+                            >
+                                Test Mode
+                            </Button>
                         </Box>
                     </Box>
                 </Paper>
@@ -649,6 +814,198 @@ const AdminPanel = ({ onSignOut }) => {
                     </TableContainer>
                 )}
             </Container>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={() => !deleting && setDeleteDialogOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: '20px',
+                        p: 2,
+                    }
+                }}
+            >
+                <DialogTitle sx={{ 
+                    fontWeight: 800, 
+                    fontFamily: '"Playfair Display", serif',
+                    color: luxuryColors.maroon,
+                    fontSize: '24px',
+                    pb: 1
+                }}>
+                    Manage Knowledge Base Documents
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ fontSize: '15px', color: '#666', lineHeight: 1.7, mb: 3 }}>
+                        Select specific documents to delete, or delete all documents from the knowledge base.
+                        <br />
+                        <strong style={{ color: '#d32f2f' }}>This action cannot be undone.</strong>
+                    </DialogContentText>
+
+                    {loadingDocuments ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <CircularProgress />
+                        </Box>
+                    ) : knowledgeDocuments.length === 0 ? (
+                        <Alert severity="info" sx={{ borderRadius: '12px' }}>
+                            No documents found in the knowledge base.
+                        </Alert>
+                    ) : (
+                        <>
+                            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography sx={{ fontSize: '14px', fontWeight: 600, color: luxuryColors.text }}>
+                                    {knowledgeDocuments.length} document(s) found
+                                </Typography>
+                                <Button
+                                    size="small"
+                                    onClick={() => {
+                                        if (selectedDocuments.length === knowledgeDocuments.length) {
+                                            setSelectedDocuments([]);
+                                        } else {
+                                            setSelectedDocuments(knowledgeDocuments.map(d => d.source));
+                                        }
+                                    }}
+                                    sx={{ 
+                                        color: luxuryColors.gold, 
+                                        textTransform: 'none',
+                                        fontSize: '13px',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    {selectedDocuments.length === knowledgeDocuments.length ? 'Deselect All' : 'Select All'}
+                                </Button>
+                            </Box>
+
+                            <Paper 
+                                variant="outlined" 
+                                sx={{ 
+                                    borderRadius: '12px', 
+                                    maxHeight: '400px', 
+                                    overflow: 'auto',
+                                    border: `1px solid ${luxuryColors.gold}30`
+                                }}
+                            >
+                                <List sx={{ p: 0 }}>
+                                    {knowledgeDocuments.map((doc, index) => (
+                                        <ListItem 
+                                            key={doc.source}
+                                            disablePadding
+                                            sx={{
+                                                borderBottom: index < knowledgeDocuments.length - 1 ? '1px solid #f0f0f0' : 'none'
+                                            }}
+                                        >
+                                            <ListItemButton 
+                                                onClick={() => toggleDocumentSelection(doc.source)}
+                                                sx={{
+                                                    py: 2,
+                                                    '&:hover': {
+                                                        bgcolor: `${luxuryColors.gold}10`
+                                                    }
+                                                }}
+                                            >
+                                                <ListItemIcon>
+                                                    <Checkbox
+                                                        edge="start"
+                                                        checked={selectedDocuments.includes(doc.source)}
+                                                        tabIndex={-1}
+                                                        disableRipple
+                                                        sx={{
+                                                            color: luxuryColors.gold,
+                                                            '&.Mui-checked': {
+                                                                color: luxuryColors.gold
+                                                            }
+                                                        }}
+                                                    />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={
+                                                        <Typography sx={{ 
+                                                            fontWeight: 600, 
+                                                            fontSize: '14px',
+                                                            color: luxuryColors.maroon 
+                                                        }}>
+                                                            {doc.source}
+                                                        </Typography>
+                                                    }
+                                                    secondary={
+                                                        <Box sx={{ mt: 0.5 }}>
+                                                            <Typography 
+                                                                component="span" 
+                                                                sx={{ fontSize: '12px', color: '#666', display: 'block' }}
+                                                            >
+                                                                📄 {doc.chunk_count} chunks
+                                                            </Typography>
+                                                            <Typography 
+                                                                component="span" 
+                                                                sx={{ fontSize: '12px', color: '#666', display: 'block' }}
+                                                            >
+                                                                📅 Uploaded: {formatDateTime(doc.last_uploaded)}
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+                                                />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </Paper>
+
+                            {selectedDocuments.length > 0 && (
+                                <Alert severity="warning" sx={{ mt: 2, borderRadius: '12px' }}>
+                                    <strong>{selectedDocuments.length}</strong> document(s) selected for deletion
+                                </Alert>
+                            )}
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexWrap: 'wrap' }}>
+                    <Button 
+                        onClick={() => setDeleteDialogOpen(false)}
+                        disabled={deleting}
+                        sx={{
+                            color: '#666',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            px: 3,
+                            borderRadius: '50px',
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Box sx={{ flex: 1 }} />
+                    <Button 
+                        onClick={handleDeleteKnowledgeBase}
+                        disabled={deleting || knowledgeDocuments.length === 0}
+                        variant="contained"
+                        sx={{
+                            bgcolor: '#d32f2f',
+                            color: 'white',
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            px: 4,
+                            borderRadius: '50px',
+                            '&:hover': {
+                                bgcolor: '#c62828',
+                            },
+                            '&:disabled': {
+                                bgcolor: 'rgba(211, 47, 47, 0.3)',
+                            }
+                        }}
+                    >
+                        {deleting ? 'Deleting...' : selectedDocuments.length > 0 ? `Delete Selected (${selectedDocuments.length})` : 'Delete All Documents'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Chatbot with separate history for admin */}
+            <Chatbot 
+                storageKey="adminChatHistory" 
+                controlledOpen={chatbotOpen}
+                onClose={() => setChatbotOpen(false)}
+                hideFloatingButton={true}
+            />
         </Box>
     );
 };

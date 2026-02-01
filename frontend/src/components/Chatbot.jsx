@@ -44,17 +44,23 @@ const CHATBOT_RESPONSES = {
   "default": "Thank you for your question! Our support team will get back to you shortly. You can also call us at 1800-123-4567 or email support@kuzhavi-kids.com for immediate assistance."
 };
 
-export default function Chatbot() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Chatbot({ storageKey = 'chatHistory', controlledOpen = null, onClose = null, hideFloatingButton = false }) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Use controlled or internal state
+  const isOpen = controlledOpen !== null ? controlledOpen : internalIsOpen;
+  const setIsOpen = controlledOpen !== null ? (value) => {
+    if (!value && onClose) onClose();
+  } : setInternalIsOpen;
+
   // Load chat history from session storage
   useEffect(() => {
-    const savedMessages = sessionStorage.getItem('chatHistory');
+    const savedMessages = sessionStorage.getItem(storageKey);
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
     } else {
@@ -68,14 +74,14 @@ export default function Chatbot() {
         },
       ]);
     }
-  }, []);
+  }, [storageKey]);
 
   // Save chat history to session storage
   useEffect(() => {
     if (messages.length > 0) {
-      sessionStorage.setItem('chatHistory', JSON.stringify(messages));
+      sessionStorage.setItem(storageKey, JSON.stringify(messages));
     }
-  }, [messages]);
+  }, [messages, storageKey]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -458,32 +464,33 @@ export default function Chatbot() {
       </Zoom>
 
       {/* Floating Chat Button */}
-      <Zoom in={!isOpen || isMinimized}>
-        <Box
-          onClick={handleToggleChat}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 1300,
-          }}
-        >
-          <IconButton
+      {!hideFloatingButton && (
+        <Zoom in={!isOpen || isMinimized}>
+          <Box
+            onClick={handleToggleChat}
             sx={{
-              width: 60,
-              height: 60,
-              bgcolor: '#4C0013',
-              color: 'white',
-              boxShadow: '0 4px 16px rgba(76, 0, 19, 0.4)',
-              '&:hover': {
-                bgcolor: '#3a000e',
-                transform: 'scale(1.05)',
-              },
-              transition: 'all 0.3s ease',
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              zIndex: 1300,
             }}
           >
-            <Chat sx={{ fontSize: 28 }} />
-          </IconButton>
+            <IconButton
+              sx={{
+                width: 60,
+                height: 60,
+                bgcolor: '#4C0013',
+                color: 'white',
+                boxShadow: '0 4px 16px rgba(76, 0, 19, 0.4)',
+                '&:hover': {
+                  bgcolor: '#3a000e',
+                  transform: 'scale(1.05)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <Chat sx={{ fontSize: 28 }} />
+            </IconButton>
 
           {/* Notification Badge (optional) */}
           {isMinimized && (
@@ -507,8 +514,9 @@ export default function Chatbot() {
               </Typography>
             </Box>
           )}
-        </Box>
-      </Zoom>
+          </Box>
+        </Zoom>
+      )}
     </>
   );
 }
