@@ -14,5 +14,5 @@ requests
 langchain-core
 langchain-text-splitters
 langchain-openai==0.2.5
-qdrant-client==1.11.1
 PyPDF2==3.0.1
+numpy==1.26.4

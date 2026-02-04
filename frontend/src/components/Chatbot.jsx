@@ -17,7 +17,7 @@ import {
   Close,
   Minimize,
   Send,
-  SupportAgent,
+  SmartToy,
   Person,
 } from '@mui/icons-material';
 
@@ -44,18 +44,30 @@ const CHATBOT_RESPONSES = {
   "default": "Thank you for your question! Our support team will get back to you shortly. You can also call us at 1800-123-4567 or email support@kuzhavi-kids.com for immediate assistance."
 };
 
-export default function Chatbot() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function Chatbot({ storageKey = 'chatHistory', controlledOpen = null, onClose = null, hideFloatingButton = false }) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showWelcomeBubble, setShowWelcomeBubble] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Use controlled or internal state
+  const isOpen = controlledOpen !== null ? controlledOpen : internalIsOpen;
+  const setIsOpen = controlledOpen !== null ? (value) => {
+    if (!value && onClose) onClose();
+  } : setInternalIsOpen;
+
+  // Reset minimize state when controlled open changes to true
+  useEffect(() => {
+    if (controlledOpen === true && isMinimized) {
+      setIsMinimized(false);
+    }
+  }, [controlledOpen, isMinimized]);
 
   // Load chat history from session storage
   useEffect(() => {
-    const savedMessages = sessionStorage.getItem('chatHistory');
+    const savedMessages = sessionStorage.getItem(storageKey);
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
     } else {
@@ -69,22 +81,14 @@ export default function Chatbot() {
         },
       ]);
     }
-  }, []);
+  }, [storageKey]);
 
   // Save chat history to session storage
   useEffect(() => {
     if (messages.length > 0) {
-      sessionStorage.setItem('chatHistory', JSON.stringify(messages));
+      sessionStorage.setItem(storageKey, JSON.stringify(messages));
     }
-  }, [messages]);
-
-  // Show welcome bubble after 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowWelcomeBubble(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  }, [messages, storageKey]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -133,7 +137,7 @@ export default function Chatbot() {
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error('Error fetching chatbot response:', error);
-
+      
       // Fallback to local responses on error
       const normalizedInput = messageText.toLowerCase().trim();
       const fallbackResponse = CHATBOT_RESPONSES[normalizedInput] || "I'm having trouble connecting right now. Please try again in a moment, or contact our support team at 1800-123-4567.";
@@ -208,13 +212,13 @@ export default function Chatbot() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Avatar
                 sx={{
-                  bgcolor: '#FFFFFF',
-                  color: '#4C0013',
+                  bgcolor: '#B38B00',
+                  color: '#FFFFFF',
                   width: 36,
                   height: 36,
                 }}
               >
-                <SupportAgent sx={{ fontSize: 24 }} />
+                <SmartToy sx={{ fontSize: 20 }} />
               </Avatar>
               <Box>
                 <Typography sx={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.2 }}>
@@ -226,16 +230,6 @@ export default function Chatbot() {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <IconButton
-                size="small"
-                onClick={handleMinimize}
-                sx={{
-                  color: 'white',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                }}
-              >
-                <Minimize sx={{ fontSize: 18 }} />
-              </IconButton>
               <IconButton
                 size="small"
                 onClick={handleClose}
@@ -329,7 +323,7 @@ export default function Chatbot() {
                         mt: 0.5,
                       }}
                     >
-                      <SupportAgent sx={{ fontSize: 18 }} />
+                      <SmartToy sx={{ fontSize: 16 }} />
                     </Avatar>
                   )}
                   <Box
@@ -392,7 +386,7 @@ export default function Chatbot() {
                     height: 28,
                   }}
                 >
-                  <SupportAgent sx={{ fontSize: 18 }} />
+                  <SmartToy sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Paper
                   elevation={0}
@@ -467,86 +461,17 @@ export default function Chatbot() {
       </Zoom>
 
       {/* Floating Chat Button */}
-      <Zoom in={!isOpen || isMinimized}>
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 1300,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: 2
-          }}
-        >
-          {/* Welcome Bubble */}
-          <Fade in={showWelcomeBubble && !isOpen}>
-            <Paper
-              elevation={4}
-              sx={{
-                p: '14px 22px',
-                borderRadius: '24px 24px 0 24px',
-                bgcolor: '#FFFDF5', // Ivory background
-                border: '2px solid #B38B00', // Premium Gold/Yellow border
-                position: 'relative',
-                maxWidth: '240px',
-                boxShadow: '0 12px 35px rgba(179, 139, 0, 0.2)', // Gold tinted shadow
-                cursor: 'pointer',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: -10,
-                  right: 20,
-                  borderWidth: '10px 10px 0 0',
-                  borderStyle: 'solid',
-                  borderColor: '#B38B00 transparent transparent transparent',
-                }
-              }}
-              onClick={handleToggleChat}
-            >
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowWelcomeBubble(false);
-                }}
-                sx={{
-                  position: 'absolute',
-                  top: -10,
-                  right: -10,
-                  bgcolor: '#f0f0f0',
-                  padding: '2px',
-                  '&:hover': { bgcolor: '#e0e0e0' }
-                }}
-              >
-                <Close sx={{ fontSize: 12 }} />
-              </IconButton>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Box sx={{
-                  bgcolor: '#B38B00',
-                  color: 'white',
-                  px: 1,
-                  py: 0.2,
-                  borderRadius: '4px',
-                  fontSize: '9px',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  NEW
-                </Box>
-                <Typography sx={{ fontSize: '13px', fontWeight: 800, color: '#4C0013' }}>
-                  Styling Advice ✨
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: '12px', color: '#666', lineHeight: 1.5, fontWeight: 500 }}>
-                Hi! I'm your **Designer Guide**. Let me help you choose the perfect outfit!
-              </Typography>
-            </Paper>
-          </Fade>
-
-          <Box sx={{ position: 'relative' }} onClick={handleToggleChat}>
+      {!hideFloatingButton && (
+        <Zoom in={!isOpen || isMinimized}>
+          <Box
+            onClick={handleToggleChat}
+            sx={{
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              zIndex: 1300,
+            }}
+          >
             <IconButton
               sx={{
                 width: 60,
@@ -561,44 +486,34 @@ export default function Chatbot() {
                 transition: 'all 0.3s ease',
               }}
             >
-              <Avatar
-                sx={{
-                  bgcolor: 'transparent',
-                  color: 'white',
-                  width: 32,
-                  height: 32,
-                }}
-              >
-                <SupportAgent sx={{ fontSize: 32 }} />
-              </Avatar>
+              <Chat sx={{ fontSize: 28 }} />
             </IconButton>
 
-            {/* Notification Badge */}
-            {(isMinimized || showWelcomeBubble) && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  bgcolor: '#FF4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                }}
-              >
-                <Typography sx={{ fontSize: '9px', color: 'white', fontWeight: 900 }}>
-                  1
-                </Typography>
-              </Box>
-            )}
+          {/* Notification Badge (optional) */}
+          {isMinimized && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                bgcolor: '#FF4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
+              }}
+            >
+              <Typography sx={{ fontSize: '10px', color: 'white', fontWeight: 700 }}>
+                1
+              </Typography>
+            </Box>
+          )}
           </Box>
-        </Box>
-      </Zoom>
+        </Zoom>
+      )}
     </>
   );
 }

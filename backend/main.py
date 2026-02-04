@@ -28,9 +28,8 @@ from google.auth.transport import requests as google_requests
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
 from PyPDF2 import PdfReader
+import numpy as np
 
 
 load_dotenv()
@@ -71,29 +70,28 @@ client = AsyncIOMotorClient(MONGO_URI)
 db = client["pattupavadai"]
 users_col = db["users"]
 orders_col = db["orders"]
+knowledge_col = db["knowledge_base"]
 products_col = db["products"]
 cart_col = db["cart"]
 favorites_col = db["favorites"]
 
-QDRANT_URL = os.environ.get("QDRANT_URL")
-QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
-QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "pattupavadai-rag")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "text-embedding-3-small")
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
 
 
-def get_qdrant_client() -> QdrantClient:
-    if not QDRANT_URL or not QDRANT_API_KEY:
-        raise HTTPException(status_code=500, detail="Qdrant configuration missing")
-    return QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
-
-
 def get_embeddings_client() -> OpenAIEmbeddings:
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY missing")
     return OpenAIEmbeddings(model=EMBED_MODEL, api_key=OPENAI_API_KEY)
+
+
+def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+    """Calculate cosine similarity between two vectors"""
+    arr1 = np.array(vec1)
+    arr2 = np.array(vec2)
+    return np.dot(arr1, arr2) / (np.linalg.norm(arr1) * np.linalg.norm(arr2))
 
 
 def extract_pdf_text(pdf_bytes: bytes) -> str:
@@ -118,27 +116,6 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
 def text_to_documents(text: str) -> List[Document]:
     docs = [Document(page_content=text)]
     return text_splitter.split_documents(docs)
-
-
-def ensure_collection(client: QdrantClient, vector_size: int, recreate: bool = False) -> None:
-    exists = client.collection_exists(QDRANT_COLLECTION)
-    if recreate and exists:
-        client.delete_collection(QDRANT_COLLECTION)
-        time.sleep(1)
-        exists = False
-    if not exists:
-        client.create_collection(
-            collection_name=QDRANT_COLLECTION,
-            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-        )
-
-
-def build_qdrant_points(vectors: List[List[float]], payloads: List[Dict[str, Any]]) -> List[PointStruct]:
-    base_id = int(time.time() * 1000)
-    return [
-        PointStruct(id=base_id + idx, vector=vector, payload=payload)
-        for idx, (vector, payload) in enumerate(zip(vectors, payloads))
-    ]
 
 
 def log_ingest(message: str) -> None:
@@ -897,6 +874,11 @@ async def upload_knowledge_pdf(mode: str = Form(...), file: UploadFile = File(..
 
     log_ingest(f"Received '{file.filename}' ({len(pdf_bytes) / 1024:.1f} KB) with mode={mode}")
 
+    # Clear collection if mode is 'new'
+    if mode == "new":
+        await knowledge_col.delete_many({})
+        log_ingest("Cleared existing knowledge base")
+
     text = await asyncio.to_thread(extract_pdf_text, pdf_bytes)
     log_ingest(f"Extracted {len(text)} characters from PDF")
     documents = text_to_documents(text)
@@ -919,24 +901,22 @@ async def upload_knowledge_pdf(mode: str = Form(...), file: UploadFile = File(..
     if not vectors:
         raise HTTPException(status_code=500, detail="Failed to compute embeddings")
 
-    payloads: List[Dict[str, Any]] = []
-    for idx, doc in enumerate(documents):
-        payload_meta = {k: (str(v) if not isinstance(v, (int, float, bool)) else v) for k, v in doc.metadata.items()}
-        payloads.append({
+    # Store in MongoDB
+    knowledge_docs = []
+    for idx, (doc, vector) in enumerate(zip(documents, vectors)):
+        knowledge_docs.append({
             "text": doc.page_content,
+            "embedding": vector,
             "chunk_index": idx,
-            **payload_meta,
+            "source": file.filename,
+            "created_at": time.time(),
+            **{k: (str(v) if not isinstance(v, (int, float, bool)) else v) 
+               for k, v in doc.metadata.items()}
         })
-
-    q_client = get_qdrant_client()
-    ensure_collection(q_client, len(vectors[0]), recreate=(mode == "new"))
-    points = build_qdrant_points(vectors, payloads)
-
-    upsert_batch = 20
-    for start in range(0, len(points), upsert_batch):
-        chunk_points = points[start:start + upsert_batch]
-        q_client.upsert(collection_name=QDRANT_COLLECTION, points=chunk_points)
-        log_ingest(f"Uploaded {min(start + upsert_batch, len(points))}/{len(points)} vectors to Qdrant")
+    
+    if knowledge_docs:
+        await knowledge_col.insert_many(knowledge_docs)
+        log_ingest(f"Stored {len(knowledge_docs)} chunks in MongoDB")
 
     log_ingest("Knowledge base update complete")
 
@@ -944,52 +924,158 @@ async def upload_knowledge_pdf(mode: str = Form(...), file: UploadFile = File(..
         "message": "Knowledge base updated",
         "mode": mode,
         "chunks": len(documents),
-        "collection": QDRANT_COLLECTION,
+        "stored_in": "MongoDB",
     }
 
 
-# Chatbot proxy endpoint to bypass CORS
+@app.get("/admin/knowledge/list")
+async def list_knowledge_documents():
+    """
+    Get list of all uploaded documents with metadata
+    """
+    try:
+        # Aggregate to get unique documents with their info
+        pipeline = [
+            {
+                "$group": {
+                    "_id": "$source",
+                    "chunk_count": {"$sum": 1},
+                    "first_uploaded": {"$min": "$created_at"},
+                    "last_uploaded": {"$max": "$created_at"}
+                }
+            },
+            {"$sort": {"last_uploaded": -1}}
+        ]
+        
+        cursor = knowledge_col.aggregate(pipeline)
+        documents = await cursor.to_list(length=1000)
+        
+        # Format the response
+        formatted_docs = []
+        for doc in documents:
+            formatted_docs.append({
+                "source": doc["_id"],
+                "chunk_count": doc["chunk_count"],
+                "first_uploaded": doc["first_uploaded"],
+                "last_uploaded": doc["last_uploaded"]
+            })
+        
+        return {"documents": formatted_docs}
+    except Exception as e:
+        print(f"Error listing knowledge documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
+
+
+@app.delete("/admin/knowledge/delete")
+async def delete_knowledge_base(source: str = None):
+    """
+    Delete documents from the knowledge base
+    If source is provided, delete only that document's chunks
+    Otherwise, delete all documents
+    """
+    try:
+        if source:
+            # Delete specific document
+            result = await knowledge_col.delete_many({"source": source})
+            deleted_count = result.deleted_count
+            log_ingest(f"Deleted {deleted_count} chunks from document: {source}")
+            
+            return {
+                "message": f"Document '{source}' deleted successfully",
+                "deleted_count": deleted_count,
+                "source": source
+            }
+        else:
+            # Delete all documents
+            result = await knowledge_col.delete_many({})
+            deleted_count = result.deleted_count
+            log_ingest(f"Deleted all {deleted_count} documents from knowledge base")
+            
+            return {
+                "message": "All knowledge base deleted successfully",
+                "deleted_count": deleted_count
+            }
+    except Exception as e:
+        print(f"Error deleting knowledge base: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete knowledge base: {str(e)}")
+
+
+# Local RAG chatbot endpoint
 class ChatbotQueryRequest(BaseModel):
     query: str
-
 
 @app.post("/chatbot/query")
 async def chatbot_query(request: ChatbotQueryRequest):
     """
-    Kuzhavi Kids Designer Guide - AI Response System
+    Local RAG endpoint using MongoDB for embeddings storage
     """
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return {"response": "I'm currently in offline mode. Please contact support at 1800-123-4567."}
-
-    client = OpenAI(api_key=api_key)
-    
-    system_prompt = """
-    You are the 'Kuzhavi Designer Guide', an expert in South Indian traditional kids' ethnic wear (Pattupavadai, Langa Voni, Kurta Sets).
-    Your tone is warm, professional, and helpful. You represent Kuzhavi Kids boutique.
-    
-    Your knowledge covers:
-    1. Fabrics: Banarasi Silk, Tissue Silk, Kalamkari, Organza, Cotton.
-    2. Styles: Pattu Pavadai, Ethnic Frocks, Traditional Gowns.
-    3. Customization: Sleeve types (puff, short), Necklines (round, square, boat), and Border designs.
-    4. Policies: 10-day return policy, free shipping, Cash on Delivery available.
-    5. Delivery: 3-5 business days for standard, 1-2 days for express.
-    
-    If asked something unrelated to fashion or Kuzhavi Kids, politely redirect them.
-    Keep responses concise and helpful.
-    """
-
     try:
+        # Check if knowledge base has data
+        kb_count = await knowledge_col.count_documents({})
+        if kb_count == 0:
+            return {
+                "response": "I don't have any knowledge uploaded yet. Please ask the admin to upload product information."
+            }
+
+        # Embed the query
+        embeddings_client = get_embeddings_client()
+        query_vector = await asyncio.to_thread(
+            embeddings_client.embed_query, 
+            request.query
+        )
+
+        # Retrieve all embeddings from MongoDB
+        cursor = knowledge_col.find({}, {"text": 1, "embedding": 1})
+        all_chunks = await cursor.to_list(length=1000)
+
+        # Calculate similarities
+        similarities = []
+        for chunk in all_chunks:
+            if "embedding" in chunk and chunk["embedding"]:
+                sim = cosine_similarity(query_vector, chunk["embedding"])
+                similarities.append({
+                    "text": chunk["text"],
+                    "similarity": sim
+                })
+
+        # Sort by similarity and get top 3 chunks
+        similarities.sort(key=lambda x: x["similarity"], reverse=True)
+        top_chunks = similarities[:3]
+
+        if not top_chunks or top_chunks[0]["similarity"] < 0.3:
+            return {
+                "response": "I couldn't find relevant information about that. Could you please rephrase your question or ask about our products, fabrics, or ordering process?"
+            }
+
+        # Build context from top chunks
+        context = "\n\n".join([chunk["text"] for chunk in top_chunks])
+
+        # Generate response using GPT
+        client = OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.query}
+                {
+                    "role": "system", 
+                    "content": "You are a helpful customer service assistant for Pattupavadai, a South Indian traditional children's wear e-commerce platform. Answer questions based on the provided context. Be friendly, concise, and helpful. If the context doesn't contain the answer, say so politely."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Context:\n{context}\n\nQuestion: {request.query}\n\nAnswer:"
+                }
             ],
-            max_tokens=500
+            temperature=0.7,
+            max_tokens=300
         )
-        return {"response": response.choices[0].message.content}
+
+        answer = response.choices[0].message.content
+
+        return {
+            "response": answer,
+            "sources_used": len(top_chunks)
+        }
+
     except Exception as e:
-        print(f"Chatbot error: {str(e)}")
-        # Fallback to a polite message if OpenAI fails
-        return {"response": "I'm having a bit of trouble thinking right now. Could you please try again in a moment?"}
+        print(f"Chatbot query error: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Chatbot service error: {str(e)}")
