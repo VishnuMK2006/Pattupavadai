@@ -40,7 +40,9 @@ import {
     Facebook,
     Pinterest,
     Menu as MenuIcon,
-    InfoOutlined
+    InfoOutlined,
+    Add,
+    Remove
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, MenuItem } from '@mui/material';
@@ -66,6 +68,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
     const [selectedSize, setSelectedSize] = useState('');
     const [showHighlightsOverlay, setShowHighlightsOverlay] = useState(false);
     const isFavorite = favorites.some(f => (f.id || f.product_id) === (product?.id || product?._id));
+    const [quantity, setQuantity] = useState(1);
     const [anchorEl, setAnchorEl] = useState(null);
     const [sizeError, setSizeError] = useState(false); // Added sizeError state
 
@@ -79,7 +82,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
             setSizeError(true);
             return;
         }
-        onBuyNow({ ...product, selectedSize });
+        onBuyNow({ ...product, selectedSize, quantity });
     };
 
     const handleAddToCartClick = () => {
@@ -87,7 +90,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
             setSizeError(true);
             return;
         }
-        onAddToCart({ ...product, selectedSize });
+        onAddToCart({ ...product, selectedSize, quantity });
     };
 
     useEffect(() => {
@@ -260,7 +263,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
                         <Box sx={{ position: 'sticky', top: 100 }}>
                             <Paper elevation={0} sx={{ p: 2, border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden', bgcolor: 'white' }}>
                                 {/* Image Display */}
-                                <Box sx={{ position: 'relative', width: '100%', pt: '110%', bgcolor: '#f9f9f9', mb: 2, borderRadius: '4px', overflow: 'hidden' }}>
+                                <Box sx={{ position: 'relative', width: '100%', pt: '110%', bgcolor: 'white', mb: 2, borderRadius: '4px', overflow: 'hidden' }}>
                                     <Box
                                         sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                     >
@@ -302,7 +305,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
                                                 style={{
                                                     width: '100%',
                                                     height: '100%',
-                                                    objectFit: 'contain',
+                                                    objectFit: 'cover',
                                                     cursor: 'grab'
                                                 }}
                                                 whileTap={{ cursor: 'grabbing' }}
@@ -564,6 +567,43 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
                                 </Stack>
                             </Box>
 
+                            {/* Quantity Selector */}
+                            <Box sx={{ mb: 4 }}>
+                                <Typography sx={{ fontSize: '14px', fontWeight: 800, mb: 1, color: luxuryColors.gray, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Quantity
+                                </Typography>
+                                <Stack direction="row" alignItems="center" spacing={2}>
+                                    <IconButton
+                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                        disabled={quantity <= 1}
+                                        sx={{
+                                            border: `1px solid ${quantity <= 1 ? '#e0e0e0' : luxuryColors.maroon}`,
+                                            color: luxuryColors.maroon,
+                                            width: 36,
+                                            height: 36,
+                                            '&:hover': { bgcolor: quantity <= 1 ? 'transparent' : 'rgba(76, 0, 19, 0.05)' }
+                                        }}
+                                    >
+                                        <Remove fontSize="small" />
+                                    </IconButton>
+                                    <Typography sx={{ fontSize: '16px', fontWeight: 700, minWidth: 20, textAlign: 'center', color: luxuryColors.text }}>
+                                        {quantity}
+                                    </Typography>
+                                    <IconButton
+                                        onClick={() => setQuantity(quantity + 1)}
+                                        sx={{
+                                            border: `1px solid ${luxuryColors.maroon}`,
+                                            color: luxuryColors.maroon,
+                                            width: 36,
+                                            height: 36,
+                                            '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.05)' }
+                                        }}
+                                    >
+                                        <Add fontSize="small" />
+                                    </IconButton>
+                                </Stack>
+                            </Box>
+
                             {/* Action Buttons */}
                             <Grid container spacing={2} sx={{ mb: 4 }}>
                                 <Grid item xs={12} sm={6}>
@@ -637,11 +677,11 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
                             </Box>
                         </Paper>
                     </Box>
-                </Box>
+                </Box >
             </Container >
 
             {/* Footer */}
-            <Box sx={{ bgcolor: luxuryColors.maroon, pt: 8, pb: 4, color: 'white', mt: 10 }}>
+            < Box sx={{ bgcolor: luxuryColors.maroon, pt: 8, pb: 4, color: 'white', mt: 10 }}>
                 <Container maxWidth="xl" sx={{ px: { xs: 2, md: 6 } }}>
                     <Grid container spacing={8} sx={{ mb: 10 }}>
                         <Grid item xs={12} md={4}>
@@ -694,8 +734,8 @@ const ProductDetail = ({ product, onBack, onAddToCart, onBuyNow, onCustomize, fa
                         </Stack>
                     </Box>
                 </Container>
-            </Box>
-        </Box>
+            </Box >
+        </Box >
     );
 };
 

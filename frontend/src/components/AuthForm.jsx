@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff, Close } from "@mui/icons-material";
 import { FcGoogle } from "react-icons/fc";
+import { validateAddress } from "../utils/addressValidation";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -172,6 +173,16 @@ export default function AuthForm({ onAuthSuccess, onClose }) {
             email: form.email.trim(),
             password: form.password,
           };
+
+      // Address Validation for Signup
+      if (mode === "signup") {
+        const addressError = validateAddress(form.shippingAddress);
+        if (addressError !== "Valid Address") {
+          setError(addressError);
+          setLoading(false);
+          return;
+        }
+      }
 
       console.log(`Attempting ${mode} via ${endpoint}...`);
       const response = await fetch(`${API_BASE}${endpoint}`, {

@@ -194,6 +194,8 @@ class OrderItem(BaseModel):
     # Deprecated/Optional fields
     fabric_id: str | None = None
     fabric_name: str | None = None
+    image: str | None = None
+    preview_url: str | None = None
     image_name: str | None = None
 
 class OrderRequest(BaseModel):
@@ -231,6 +233,7 @@ class CartItem(BaseModel):
     bottom_color: str | None = None
     accent: str | None = None
     preview_url: str | None = None
+    image_name: str | None = None
 
 class FavoriteItem(BaseModel):
     user_email: str
@@ -247,6 +250,7 @@ class FavoriteItem(BaseModel):
     bottom_color: str | None = None
     accent: str | None = None
     preview_url: str | None = None
+    image_name: str | None = None
 
 class ProductModel(BaseModel):
     name: str

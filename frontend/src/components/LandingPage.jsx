@@ -26,6 +26,7 @@ import {
     Star,
     PlayCircleOutline,
     ArrowForwardIos,
+    ArrowBackIos, // Added for carousel
     Instagram,
     Facebook,
     Pinterest,
@@ -45,6 +46,148 @@ const luxuryColors = {
 
 const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
+
+// New ProductCard Component
+const ProductCard = ({ product, onClick }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+    // Combine card_image with gallery_images if available
+    const images = [product.img, ...(product.gallery || [])].filter(Boolean);
+    const hasVideo = !!product.video;
+
+    // Show video only on first image hover
+    const showVideo = isHovered && hasVideo && currentImgIndex === 0;
+
+    const handleNext = (e) => {
+        e.stopPropagation();
+        setCurrentImgIndex((prev) => (prev + 1) % images.length);
+    };
+
+    const handlePrev = (e) => {
+        e.stopPropagation();
+        setCurrentImgIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    return (
+        <Box
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            sx={{ cursor: 'pointer', height: '100%' }}
+        >
+            <Box sx={{
+                height: 300,
+                width: '100%',
+                borderRadius: '24px',
+                overflow: 'hidden',
+                mb: 2,
+                position: 'relative',
+                bgcolor: '#F8F8F8',
+                boxShadow: '0 30px 60px rgba(76, 0, 19, 0.08)',
+                transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                    transform: 'translateY(-12px)',
+                    boxShadow: '0 40px 80px rgba(76, 0, 19, 0.15)'
+                },
+                '&:hover .quick-add': { opacity: 1, y: 0 },
+                '&:hover img': { transform: 'scale(1.1)' }
+            }}>
+                {showVideo ? (
+                    <video
+                        src={product.video}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '24px'
+                        }}
+                    />
+                ) : (
+                    <Box
+                        component="img"
+                        src={images[currentImgIndex]}
+                        sx={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            transition: '1s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                    />
+                )}
+
+                {/* Carousel Navigation Buttons */}
+                {isHovered && images.length > 1 && (
+                    <>
+                        <IconButton
+                            onClick={handlePrev}
+                            sx={{
+                                position: 'absolute',
+                                left: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255,255,255,0.9)',
+                                color: luxuryColors.maroon,
+                                width: 32,
+                                height: 32,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
+                                zIndex: 3
+                            }}
+                        >
+                            <ArrowBackIos sx={{ fontSize: 16, ml: 1 }} />
+                        </IconButton>
+                        <IconButton
+                            onClick={handleNext}
+                            sx={{
+                                position: 'absolute',
+                                right: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255,255,255,0.9)',
+                                color: luxuryColors.maroon,
+                                width: 32,
+                                height: 32,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
+                                zIndex: 3
+                            }}
+                        >
+                            <ArrowForwardIos sx={{ fontSize: 16 }} />
+                        </IconButton>
+                    </>
+                )}
+
+                <Box className="quick-add" sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    bgcolor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(5px)',
+                    p: 2,
+                    opacity: 0,
+                    transform: 'translateY(100%)',
+                    transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    zIndex: 2
+                }}>
+                    <Button fullWidth sx={{ color: luxuryColors.maroon, fontWeight: 800, fontSize: '12px' }}>QUICK ADD +</Button>
+                </Box>
+            </Box>
+            <Box sx={{ height: 40, overflow: 'hidden', mb: 0.5 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>{product.title}</Typography>
+            </Box>
+            <Typography sx={{ color: luxuryColors.gold, fontWeight: 800 }}>{product.price}</Typography>
+        </Box>
+    );
+};
 
 export default function LandingPage({ onAuthSuccess, user, onGoToApp, products = [] }) {
     const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -68,7 +211,9 @@ export default function LandingPage({ onAuthSuccess, user, onGoToApp, products =
         id: p._id,
         title: p.name,
         price: `₹${p.price}`,
-        img: p.card_image
+        img: p.card_image,
+        video: p.video_url, // Added video
+        gallery: p.gallery_images // Added gallery
     })) : [];
 
     const videoShorts = [
@@ -335,53 +480,7 @@ export default function LandingPage({ onAuthSuccess, user, onGoToApp, products =
                     <Grid container spacing={4}>
                         {bestSellers.map((product) => (
                             <Grid item xs={6} sm={6} md={3} key={product.id}>
-                                <Box onClick={handleProtectedAction} sx={{ cursor: 'pointer', height: '100%' }}>
-                                    <Box sx={{
-                                        height: 280, // Absolute fixed height
-                                        width: '100%',
-                                        borderRadius: '20px',
-                                        overflow: 'hidden',
-                                        mb: 2,
-                                        position: 'relative',
-                                        bgcolor: '#F8F8F8',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        '&:hover .quick-add': { opacity: 1, y: 0 },
-                                        '&:hover img': { transform: 'scale(1.05)' }
-                                    }}>
-                                        <Box
-                                            component="img"
-                                            src={product.img}
-                                            sx={{
-                                                maxWidth: '100%',
-                                                maxHeight: '100%',
-                                                width: 'auto',
-                                                height: 'auto',
-                                                objectFit: 'contain',
-                                                transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-                                            }}
-                                        />
-                                        <Box className="quick-add" sx={{
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bgcolor: 'rgba(255,255,255,0.95)',
-                                            backdropFilter: 'blur(5px)',
-                                            p: 2,
-                                            opacity: 0,
-                                            transform: 'translateY(100%)',
-                                            transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                                        }}>
-                                            <Button fullWidth sx={{ color: luxuryColors.maroon, fontWeight: 800, fontSize: '12px' }}>QUICK ADD +</Button>
-                                        </Box>
-                                    </Box>
-                                    <Box sx={{ height: 40, overflow: 'hidden', mb: 0.5 }}>
-                                        <Typography sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>{product.title}</Typography>
-                                    </Box>
-                                    <Typography sx={{ color: luxuryColors.gold, fontWeight: 800 }}>{product.price}</Typography>
-                                </Box>
+                                <ProductCard product={product} onClick={handleProtectedAction} />
                             </Grid>
                         ))}
                     </Grid>

@@ -25,6 +25,7 @@ import {
     CheckCircle,
     Security
 } from '@mui/icons-material';
+import { validateAddress } from "../utils/addressValidation";
 
 const luxuryColors = {
     maroon: '#4C0013',
@@ -86,8 +87,8 @@ export default function OrderSummary({ user, item, cartItems = [], onBack, onCon
         }).format(price);
     };
 
-    const totalPrice = activeItems.reduce((sum, i) => sum + calculatePrice(i), 0);
-    const totalOriginalPrice = activeItems.reduce((sum, i) => sum + calculateOriginalPrice(i), 0);
+    const totalPrice = activeItems.reduce((sum, i) => sum + (calculatePrice(i) * (i.quantity || 1)), 0);
+    const totalOriginalPrice = activeItems.reduce((sum, i) => sum + (calculateOriginalPrice(i) * (i.quantity || 1)), 0);
     const totalDiscount = totalOriginalPrice - totalPrice;
 
     // Mock fees
@@ -121,6 +122,12 @@ export default function OrderSummary({ user, item, cartItems = [], onBack, onCon
 
         if (editAddress.includes("Not provided")) {
             setAddressError("Please provide a valid address.");
+            return;
+        }
+
+        const adrVal = validateAddress(editAddress);
+        if (adrVal !== "Valid Address") {
+            setAddressError(adrVal);
             return;
         }
 
@@ -266,11 +273,32 @@ export default function OrderSummary({ user, item, cartItems = [], onBack, onCon
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                         {activeItems.slice(0, 3).map((itm, idx) => (
-                            <Box key={idx}
-                                component="img"
-                                src={itm.preview_url || itm.image}
-                                sx={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '4px', border: '1px solid #eee' }}
-                            />
+                            <Box key={idx} sx={{ position: 'relative' }}>
+                                <Box
+                                    component="img"
+                                    src={itm.preview_url || itm.image}
+                                    sx={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '4px', border: '1px solid #eee' }}
+                                />
+                                {(itm.quantity || 1) > 1 && (
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        bottom: -4,
+                                        right: -4,
+                                        bgcolor: luxuryColors.maroon,
+                                        color: 'white',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold',
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {itm.quantity}
+                                    </Box>
+                                )}
+                            </Box>
                         ))}
                         {activeItems.length > 3 && (
                             <Box sx={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f0f0f0', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
@@ -310,7 +338,7 @@ export default function OrderSummary({ user, item, cartItems = [], onBack, onCon
                     <Box sx={{ p: 2 }}>
                         <Stack spacing={2}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography sx={{ fontSize: '14px' }}>MRP</Typography>
+                                <Typography sx={{ fontSize: '14px' }}>Price ({activeItems.reduce((sum, i) => sum + (i.quantity || 1), 0)} items)</Typography>
                                 <Typography sx={{ fontSize: '14px' }}>{formatPrice(totalOriginalPrice)}</Typography>
                             </Box>
 

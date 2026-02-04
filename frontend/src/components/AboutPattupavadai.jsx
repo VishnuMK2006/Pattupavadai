@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -29,6 +29,8 @@ import {
 } from '@mui/material';
 import {
     ArrowBack,
+    ArrowForwardIos, // Added
+    ArrowBackIos, // Added
     FavoriteBorder,
     Favorite,
     ShoppingBagOutlined,
@@ -61,6 +63,334 @@ const luxuryColors = {
 const MotionCard = motion(Card);
 const MotionTypography = motion(Typography);
 
+// New ProductCard Component
+const ProductCard = ({ product, favorites, cart, onSelect, onToggleFavorite, onAddToCart, onShowCart, setShowCartMsg, imgTimestamp }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    const mediaItems = useMemo(() => {
+        const items = [];
+        // 1. Main Image
+        if (product.image) items.push({ type: 'image', src: product.image });
+
+        // 2. Gallery Images
+        if (product.gallery && Array.isArray(product.gallery)) {
+            product.gallery.forEach(src => {
+                // Simple dedup check
+                if (src && src !== product.image) items.push({ type: 'image', src });
+            });
+        }
+
+        // 3. Video (Last) - so it plays after sliding through images
+        if (product.video_url) items.push({ type: 'video', src: product.video_url });
+
+        return items.length > 0 ? items : [{ type: 'image', src: '' }]; // Fallback
+    }, [product]);
+
+    // Auto-slide effect on hover
+    useEffect(() => {
+        let timer;
+        if (isHovered && mediaItems.length > 1) {
+            const currentItem = mediaItems[activeIndex];
+
+            // Only auto-advance if it's an image. 
+            // If it's a video, we stop auto-sliding to let it play "fully".
+            if (currentItem && currentItem.type === 'image') {
+                timer = setTimeout(() => {
+                    setActiveIndex((prev) => (prev + 1) % mediaItems.length);
+                }, 2000); // 2 seconds for images
+            }
+        } else if (!isHovered) {
+            setActiveIndex(0); // Reset to main image on mouse leave
+        }
+        return () => clearTimeout(timer);
+    }, [isHovered, activeIndex, mediaItems]);
+
+    const handleNext = (e) => {
+        e.stopPropagation();
+        setActiveIndex((prev) => (prev + 1) % mediaItems.length);
+    };
+
+    const handlePrev = (e) => {
+        e.stopPropagation();
+        setActiveIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
+    };
+
+    const currentItem = mediaItems[activeIndex] || mediaItems[0];
+
+    return (
+        <MotionCard
+            variants={{
+                hidden: { y: 50, opacity: 0 },
+                visible: { y: 0, opacity: 1, transition: { type: "spring", damping: 20, stiffness: 100 } },
+                hover: { y: -8, transition: { type: "spring", stiffness: 300 } }
+            }}
+            whileHover="hover"
+            sx={{
+                borderRadius: '8px',
+                overflow: 'hidden',
+                bgcolor: 'white',
+                border: '1px solid #f0f0f0',
+                boxShadow: 'none',
+                height: '100%',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                cursor: 'pointer',
+                position: 'relative',
+                '&:hover': {
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                    borderColor: '#FFD700'
+                }
+            }}
+            onClick={() => onSelect && onSelect(product)}
+        >
+            <Box
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                sx={{
+                    position: 'relative',
+                    height: 280, // Absolute fixed height
+                    width: '100%',
+                    overflow: 'hidden',
+                    bgcolor: '#F8F8F8', // Light neutral background for 'contain' 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderBottom: '1px solid rgba(0,0,0,0.05)'
+                }}>
+                {currentItem.type === 'video' ? (
+                    <video
+                        src={currentItem.src}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                        }}
+                    />
+                ) : (
+                    <CardMedia
+                        component="img"
+                        image={currentItem.src && (currentItem.src.startsWith('data:') || currentItem.src.startsWith('http'))
+                            ? currentItem.src
+                            : `${currentItem.src}?t=${imgTimestamp}`}
+                        alt={product.name}
+                        sx={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain', // Fits the whole image without cropping
+                            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform: isHovered ? 'scale(1.05)' : 'scale(1)'
+                        }}
+                    />
+                )}
+
+                {/* Carousel Navigation Buttons */}
+                {mediaItems.length > 1 && (
+                    <>
+                        <IconButton
+                            onClick={handlePrev}
+                            sx={{
+                                position: 'absolute',
+                                left: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255,255,255,0.9)',
+                                color: luxuryColors.maroon,
+                                width: 28,
+                                height: 28,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
+                                zIndex: 3
+                            }}
+                        >
+                            <ArrowBackIos sx={{ fontSize: 14, ml: 0.5 }} />
+                        </IconButton>
+                        <IconButton
+                            onClick={handleNext}
+                            sx={{
+                                position: 'absolute',
+                                right: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255,255,255,0.9)',
+                                color: luxuryColors.maroon,
+                                width: 28,
+                                height: 28,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
+                                zIndex: 3
+                            }}
+                        >
+                            <ArrowForwardIos sx={{ fontSize: 14 }} />
+                        </IconButton>
+                    </>
+                )}
+
+                {/* Heart Icon Overlay */}
+                <Box sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    bgcolor: 'white',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    zIndex: 2,
+                    cursor: 'pointer',
+                    transition: '0.2s',
+                    '&:hover': { transform: 'scale(1.1)' }
+                }}
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        if (onToggleFavorite) {
+                            await onToggleFavorite(product);
+                        }
+                    }}
+                >
+                    {favorites.some(f => (f.id || f.product_id) === (product.id || product._id)) ? (
+                        <Favorite sx={{ fontSize: 18, color: '#d32f2f' }} />
+                    ) : (
+                        <FavoriteBorder sx={{ fontSize: 18, color: '#c2c2c2' }} />
+                    )}
+                </Box>
+            </Box>
+
+            <CardContent sx={{
+                flexGrow: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                p: 2,
+                gap: 0,
+                pb: '16px !important'
+            }}>
+                {/* Brand Name */}
+                <Typography sx={{ fontSize: '11px', color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
+                    Kuzhavi Kids
+                </Typography>
+
+                {/* Title - Fixed Height for 2 lines */}
+                <Box sx={{ height: 40, overflow: 'hidden', mb: 0.5 }}>
+                    <Typography
+                        sx={{
+                            fontSize: '14px',
+                            color: '#212121',
+                            lineHeight: 1.4,
+                            fontWeight: 600,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                        }}
+                    >
+                        {product.name}
+                    </Typography>
+                </Box>
+
+                {/* Subtitle/Tag - Fixed Height */}
+                <Typography sx={{ fontSize: '12px', color: '#878787', height: 18, overflow: 'hidden', mb: 0.5 }}>
+                    {product.blurb || `${product.tag || 'Traditional'}, Pack of 1`}
+                </Typography>
+
+                {/* Badge Row - Fixed Height */}
+                <Box sx={{ height: 24, display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box sx={{ bgcolor: '#F0F0F0', borderRadius: '4px', px: 0.8, py: 0.2 }}>
+                        <Typography sx={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
+                            ✓ PREMIUM
+                        </Typography>
+                    </Box>
+                </Box>
+
+                {/* Price Row - Fixed Height */}
+                <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 1, height: 24 }}>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#212121' }}>
+                        {product.price && product.price.toString().startsWith('₹') ? product.price : `₹${product.price}`}
+                    </Typography>
+                    <Typography sx={{ fontSize: '12px', textDecoration: 'line-through', color: '#999' }}>
+                        {product.originalPrice || `₹${parseInt(product.price || 0) * 2}`}
+                    </Typography>
+                    <Typography sx={{ fontSize: '12px', color: '#388e3c', fontWeight: 800 }}>
+                        {product.discountText ? (product.discountText.includes('%') ? product.discountText : `${product.discountText}% off`) : '50% off'}
+                    </Typography>
+                </Stack>
+
+                {/* Secondary Tags - Fixed Height */}
+                <Box sx={{ height: 22, mb: 1 }}>
+                    {product.tag && (
+                        <Typography sx={{
+                            fontSize: '9px',
+                            color: luxuryColors.maroon,
+                            bgcolor: 'rgba(76, 0, 19, 0.05)',
+                            display: 'inline-block',
+                            px: 1,
+                            py: 0.4,
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                        }}>
+                            {product.tag}
+                        </Typography>
+                    )}
+                </Box>
+
+                {/* Sizes - Fixed Height */}
+                <Box sx={{ height: 18, overflow: 'hidden', mb: 2 }}>
+                    <Typography sx={{ fontSize: '11px', color: '#212121', whiteSpace: 'nowrap' }}>
+                        Size <span style={{ color: '#878787' }}>{product.availableSizes && product.availableSizes.length > 0 ? product.availableSizes.join(', ') : '0-1Y, 1-2Y, 2-3Y'}</span>
+                    </Typography>
+                </Box>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        const isInCart = cart.some(item => (item.id || item.product_id) === (product.id || product._id));
+                        if (isInCart) {
+                            onShowCart && onShowCart();
+                            return;
+                        }
+
+                        if (onAddToCart) {
+                            const success = await onAddToCart(product);
+                            if (success) {
+                                setShowCartMsg(true);
+                            }
+                        }
+                    }}
+                    sx={{
+                        mt: 'auto',
+                        borderColor: luxuryColors.maroon,
+                        color: luxuryColors.maroon,
+                        borderRadius: '4px',
+                        textTransform: 'none',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        height: '36px',
+                        '&:hover': {
+                            borderColor: luxuryColors.maroon,
+                            bgcolor: 'rgba(76, 0, 19, 0.04)'
+                        }
+                    }}
+                >
+                    {cart.some(item => (item.id || item.product_id) === (product.id || product._id)) ? "Check Bag" : "Add to Bag"}
+                </Button>
+            </CardContent>
+        </MotionCard>
+    );
+};
+
 export default function AboutPattupavadai({ onBack, onSelect, user, onSignOut, onShowFavorites, onShowCart, onShowOrders, favorites = [], onToggleFavorite, onAddToCart, cart = [], productsList = [], onUpdateUser }) {
     const [page, setPage] = useState(1);
     const [sortBy, setSortBy] = useState('best-selling');
@@ -88,6 +418,7 @@ export default function AboutPattupavadai({ onBack, onSelect, user, onSignOut, o
             gallery: p.gallery_images,
             availableSizes: p.available_sizes || [],
             discountText: p.discount || '',
+            video_url: p.video_url,
             isDynamic: true
         }));
 
@@ -438,6 +769,8 @@ export default function AboutPattupavadai({ onBack, onSelect, user, onSignOut, o
                         </Box>
                     </Box>
 
+                    {/* ProductCard Component Definition */}
+
                     {/* Products Grid */}
                     <motion.div
                         variants={containerVariants}
@@ -447,213 +780,17 @@ export default function AboutPattupavadai({ onBack, onSelect, user, onSignOut, o
                         <Grid container spacing={2}>
                             {displayedProducts.map((product) => (
                                 <Grid item xs={6} sm={4} md={3} key={product.id} sx={{ display: 'flex' }}>
-                                    <MotionCard
-                                        variants={cardVariants}
-                                        whileHover="hover"
-                                        onMouseEnter={() => setHoveredProduct(product.id)}
-                                        onMouseLeave={() => setHoveredProduct(null)}
-                                        sx={{
-                                            borderRadius: '8px',
-                                            overflow: 'hidden',
-                                            bgcolor: 'white',
-                                            border: '1px solid #f0f0f0',
-                                            boxShadow: 'none',
-                                            height: '100%',
-                                            width: '100%',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            '&:hover': {
-                                                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                                                borderColor: '#FFD700'
-                                            }
-                                        }}
-                                        onClick={() => onSelect && onSelect(product)}
-                                    >
-                                        <Box sx={{
-                                            position: 'relative',
-                                            height: 280, // Absolute fixed height
-                                            width: '100%',
-                                            overflow: 'hidden',
-                                            bgcolor: '#F8F8F8', // Light neutral background for 'contain' 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderBottom: '1px solid rgba(0,0,0,0.05)'
-                                        }}>
-                                            <CardMedia
-                                                component="img"
-                                                image={product.image && (product.image.startsWith('data:') || product.image.startsWith('http'))
-                                                    ? product.image
-                                                    : `${product.image}?t=${imgTimestamp}`}
-                                                alt={product.name}
-                                                sx={{
-                                                    maxWidth: '100%',
-                                                    maxHeight: '100%',
-                                                    width: 'auto',
-                                                    height: 'auto',
-                                                    objectFit: 'contain', // Fits the whole image without cropping
-                                                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    transform: hoveredProduct === product.id ? 'scale(1.05)' : 'scale(1)'
-                                                }}
-                                            />
-
-                                            {/* Heart Icon Overlay */}
-                                            <Box sx={{
-                                                position: 'absolute',
-                                                top: 8,
-                                                right: 8,
-                                                bgcolor: 'white',
-                                                borderRadius: '50%',
-                                                width: 32,
-                                                height: 32,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                                zIndex: 2,
-                                                cursor: 'pointer',
-                                                transition: '0.2s',
-                                                '&:hover': { transform: 'scale(1.1)' }
-                                            }}
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    if (onToggleFavorite) {
-                                                        await onToggleFavorite(product);
-                                                    }
-                                                }}
-                                            >
-                                                {favorites.some(f => (f.id || f.product_id) === (product.id || product._id)) ? (
-                                                    <Favorite sx={{ fontSize: 18, color: '#d32f2f' }} />
-                                                ) : (
-                                                    <FavoriteBorder sx={{ fontSize: 18, color: '#c2c2c2' }} />
-                                                )}
-                                            </Box>
-                                        </Box>
-
-                                        <CardContent sx={{
-                                            flexGrow: 1,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            p: 2,
-                                            gap: 0,
-                                            pb: '16px !important'
-                                        }}>
-                                            {/* Brand Name */}
-                                            <Typography sx={{ fontSize: '11px', color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
-                                                Kuzhavi Kids
-                                            </Typography>
-
-                                            {/* Title - Fixed Height for 2 lines */}
-                                            <Box sx={{ height: 40, overflow: 'hidden', mb: 0.5 }}>
-                                                <Typography
-                                                    sx={{
-                                                        fontSize: '14px',
-                                                        color: '#212121',
-                                                        lineHeight: 1.4,
-                                                        fontWeight: 600,
-                                                        display: '-webkit-box',
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: 'vertical',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis'
-                                                    }}
-                                                >
-                                                    {product.name}
-                                                </Typography>
-                                            </Box>
-
-                                            {/* Subtitle/Tag - Fixed Height */}
-                                            <Typography sx={{ fontSize: '12px', color: '#878787', height: 18, overflow: 'hidden', mb: 0.5 }}>
-                                                {product.blurb || `${product.tag || 'Traditional'}, Pack of 1`}
-                                            </Typography>
-
-                                            {/* Badge Row - Fixed Height */}
-                                            <Box sx={{ height: 24, display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                <Box sx={{ bgcolor: '#F0F0F0', borderRadius: '4px', px: 0.8, py: 0.2 }}>
-                                                    <Typography sx={{ fontSize: '10px', color: '#666', fontWeight: 800 }}>
-                                                        ✓ PREMIUM
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-
-                                            {/* Price Row - Fixed Height */}
-                                            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 1, height: 24 }}>
-                                                <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#212121' }}>
-                                                    {product.price && product.price.toString().startsWith('₹') ? product.price : `₹${product.price}`}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: '12px', textDecoration: 'line-through', color: '#999' }}>
-                                                    {product.originalPrice || `₹${parseInt(product.price || 0) * 2}`}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: '12px', color: '#388e3c', fontWeight: 800 }}>
-                                                    {product.discountText ? (product.discountText.includes('%') ? product.discountText : `${product.discountText}% off`) : '50% off'}
-                                                </Typography>
-                                            </Stack>
-
-                                            {/* Secondary Tags - Fixed Height */}
-                                            <Box sx={{ height: 22, mb: 1 }}>
-                                                {product.tag && (
-                                                    <Typography sx={{
-                                                        fontSize: '9px',
-                                                        color: luxuryColors.maroon,
-                                                        bgcolor: 'rgba(76, 0, 19, 0.05)',
-                                                        display: 'inline-block',
-                                                        px: 1,
-                                                        py: 0.4,
-                                                        borderRadius: '4px',
-                                                        fontWeight: 800,
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px'
-                                                    }}>
-                                                        {product.tag}
-                                                    </Typography>
-                                                )}
-                                            </Box>
-
-                                            {/* Sizes - Fixed Height */}
-                                            <Box sx={{ height: 18, overflow: 'hidden', mb: 2 }}>
-                                                <Typography sx={{ fontSize: '11px', color: '#212121', whiteSpace: 'nowrap' }}>
-                                                    Size <span style={{ color: '#878787' }}>{product.availableSizes && product.availableSizes.length > 0 ? product.availableSizes.join(', ') : '0-1Y, 1-2Y, 2-3Y'}</span>
-                                                </Typography>
-                                            </Box>
-                                            <Button
-                                                fullWidth
-                                                variant="outlined"
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    const isInCart = cart.some(item => (item.id || item.product_id) === (product.id || product._id));
-                                                    if (isInCart) {
-                                                        onShowCart && onShowCart();
-                                                        return;
-                                                    }
-
-                                                    if (onAddToCart) {
-                                                        const success = await onAddToCart(product);
-                                                        if (success) {
-                                                            setShowCartMsg(true);
-                                                        }
-                                                    }
-                                                }}
-                                                sx={{
-                                                    mt: 'auto',
-                                                    borderColor: luxuryColors.maroon,
-                                                    color: luxuryColors.maroon,
-                                                    borderRadius: '4px',
-                                                    textTransform: 'none',
-                                                    fontSize: '13px',
-                                                    fontWeight: 600,
-                                                    height: '36px',
-                                                    '&:hover': {
-                                                        borderColor: luxuryColors.maroon,
-                                                        bgcolor: 'rgba(76, 0, 19, 0.04)'
-                                                    }
-                                                }}
-                                            >
-                                                {cart.some(item => (item.id || item.product_id) === (product.id || product._id)) ? "Check Bag" : "Add to Bag"}
-                                            </Button>
-                                        </CardContent>
-                                    </MotionCard>
+                                    <ProductCard
+                                        product={product}
+                                        favorites={favorites}
+                                        cart={cart}
+                                        onSelect={onSelect}
+                                        onToggleFavorite={onToggleFavorite}
+                                        onAddToCart={onAddToCart}
+                                        onShowCart={onShowCart}
+                                        setShowCartMsg={setShowCartMsg}
+                                        imgTimestamp={imgTimestamp}
+                                    />
                                 </Grid>
                             ))}
                         </Grid>

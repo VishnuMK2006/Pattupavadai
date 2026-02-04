@@ -16,6 +16,7 @@ import {
     Grid
 } from "@mui/material";
 import { Close, Person, Home, Phone, AddCircleOutline, Info } from "@mui/icons-material";
+import { validateAddress } from "../utils/addressValidation";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -32,10 +33,16 @@ export default function UserProfileModal({ open, user, onUpdate, onClose }) {
 
     useEffect(() => {
         if (open && user) {
-            const numbers = (user.contact_details || "").split(',');
+            const clean = (val) => (!val || String(val).toLowerCase().includes("not provided") ? "" : val);
+
+            const contact = clean(user.contact_details);
+            const address = clean(user.shipping_address);
+
+            const numbers = contact.split(',');
+
             setForm({
                 name: user.name || "",
-                shippingAddress: user.shipping_address || "",
+                shippingAddress: address || "",
                 contactDetails: numbers[0]?.trim() || "",
                 alternativeNumber: numbers[1]?.trim() || ""
             });
@@ -58,6 +65,12 @@ export default function UserProfileModal({ open, user, onUpdate, onClose }) {
     const handleSubmit = async () => {
         if (!form.name.trim() || !form.shippingAddress.trim() || !form.contactDetails.trim()) {
             setError("All fields are required");
+            return;
+        }
+
+        const adrVal = validateAddress(form.shippingAddress);
+        if (adrVal !== "Valid Address") {
+            setError(adrVal);
             return;
         }
 

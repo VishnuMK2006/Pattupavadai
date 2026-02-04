@@ -25,6 +25,7 @@ import {
     Radio,
     LinearProgress,
     IconButton,
+    Divider,
 } from '@mui/material';
 import {
     CloudUpload,
@@ -46,7 +47,7 @@ import {
     Visibility,
     History
 } from '@mui/icons-material';
-import { Menu, MenuItem, Divider as MuiDivider, Avatar } from '@mui/material';
+import { Menu, MenuItem, Avatar } from '@mui/material';
 
 const luxuryColors = {
     maroon: '#4C0013',
@@ -105,6 +106,9 @@ const AdminPanel = ({ onSignOut }) => {
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [selectedUserInsights, setSelectedUserInsights] = useState(null);
     const [loadingInsights, setLoadingInsights] = useState(false);
+    const [viewMode, setViewMode] = useState('orders'); // 'orders' or 'customer'
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [timeFilter, setTimeFilter] = useState('all'); // 'all', 'week', 'month'
 
     const productFormRef = useRef(null);
 
@@ -128,7 +132,6 @@ const AdminPanel = ({ onSignOut }) => {
             fetchProducts();
         } else if (tabValue === 2) {
             fetchOrders();
-        } else if (tabValue === 4) {
             fetchUsers();
         }
     }, [tabValue]);
@@ -353,6 +356,44 @@ const AdminPanel = ({ onSignOut }) => {
         }
     };
 
+    const getFilteredUsers = () => {
+        return users.filter(user => {
+            const matchesSearch = !customerSearch || (user.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                user.email?.toLowerCase().includes(customerSearch.toLowerCase()));
+
+            if (!matchesSearch) return false;
+            if (timeFilter === 'all') return true;
+
+            const registrationDate = user.created_at ? new Date(user.created_at) : new Date();
+            const now = new Date();
+            const diffDays = (now - registrationDate) / (1000 * 60 * 60 * 24);
+
+            if (timeFilter === 'week') return diffDays <= 7;
+            if (timeFilter === 'month') return diffDays <= 30;
+            return true;
+        });
+    };
+
+    const getFilteredOrders = () => {
+        return orders.filter(order => {
+            const matchesSearch = !customerSearch || order.user_email?.toLowerCase().includes(customerSearch.toLowerCase());
+
+            if (!matchesSearch) return false;
+            if (timeFilter === 'all') return true;
+
+            const orderDate = order.order_date ? new Date(order.order_date) : new Date();
+            const now = new Date();
+            const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
+
+            if (timeFilter === 'week') return diffDays <= 7;
+            if (timeFilter === 'month') return diffDays <= 30;
+            return true;
+        });
+    };
+
+    const filteredUsers = getFilteredUsers();
+    const filteredOrders = getFilteredOrders();
+
     // --- Product Management Logic ---
     const fetchProducts = async () => {
         setLoadingProducts(true);
@@ -560,7 +601,7 @@ const AdminPanel = ({ onSignOut }) => {
                             </Button>
                             <Button
                                 startIcon={<ShoppingBag />}
-                                onClick={() => setTabValue(2)}
+                                onClick={() => { setTabValue(2); setViewMode('orders'); }}
                                 sx={{
                                     color: tabValue === 2 ? luxuryColors.maroon : luxuryColors.maroon,
                                     fontWeight: 700,
@@ -580,7 +621,7 @@ const AdminPanel = ({ onSignOut }) => {
                                     }
                                 }}
                             >
-                                Order Registry
+                                Sales & Customers
                             </Button>
                             <Button
                                 startIcon={<DashboardIcon />}
@@ -600,25 +641,6 @@ const AdminPanel = ({ onSignOut }) => {
                                 }}
                             >
                                 ChatBot
-                            </Button>
-                            <Button
-                                startIcon={<Group />}
-                                onClick={() => setTabValue(4)}
-                                sx={{
-                                    color: luxuryColors.maroon,
-                                    fontWeight: 700,
-                                    textTransform: 'none',
-                                    px: 2,
-                                    py: 0.5,
-                                    fontSize: '12px',
-                                    borderRadius: '8px',
-                                    bgcolor: tabValue === 4 ? 'white' : 'rgba(255, 255, 255, 0.25)',
-                                    '&:hover': {
-                                        bgcolor: tabValue === 4 ? 'white' : 'rgba(255, 255, 255, 0.4)'
-                                    }
-                                }}
-                            >
-                                Customers
                             </Button>
                         </Box>
 
@@ -660,7 +682,7 @@ const AdminPanel = ({ onSignOut }) => {
                                 <Typography sx={{ fontWeight: 800, color: luxuryColors.maroon, fontSize: '14px' }}>Administrator</Typography>
                                 <Typography sx={{ color: '#999', fontSize: '12px' }}>admin@gmail.com</Typography>
                             </Box>
-                            <MuiDivider />
+                            <Divider />
                             <MenuItem onClick={() => { handleProfileMenuClose(); onSignOut(); }} sx={{ color: '#d32f2f' }}>
                                 <Logout sx={{ fontSize: 20, mr: 2 }} />
                                 <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>Sign Out</Typography>
@@ -1110,59 +1132,108 @@ const AdminPanel = ({ onSignOut }) => {
                     </Box>
                 )}
 
-                {/* Tab 2: Order Registry */}
+                {/* Tab 2: Sales & Customers (Merged Registry & Insights) */}
                 {tabValue === 2 && (
-                    <TableContainer component={Paper} sx={{ borderRadius: '20px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <Table size="small">
-                            <TableHead sx={{ bgcolor: '#FAFAFA' }}>
-                                <TableRow>
-                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>ORDER ID</TableCell>
-                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>CUSTOMER</TableCell>
-                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>TOTAL</TableCell>
-                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>ACTION</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {loadingOrders ? (
-                                    <TableRow><TableCell colSpan={4} align="center" sx={{ py: 6 }}><CircularProgress size={24} /></TableCell></TableRow>
-                                ) : orders.map(order => (
-                                    <TableRow key={order._id}>
-                                        <TableCell sx={{ fontWeight: 700, color: luxuryColors.maroon, fontSize: '13px' }}>#{order._id.slice(-8).toUpperCase()}</TableCell>
-                                        <TableCell sx={{ fontSize: '13px' }}>{order.user_email}</TableCell>
-                                        <TableCell sx={{ fontWeight: 800, fontSize: '13px' }}>₹{order.total_amount}</TableCell>
-                                        <TableCell>
-                                            <Button size="small" variant="outlined" sx={{ borderRadius: '50px', color: luxuryColors.gold, borderColor: luxuryColors.gold, py: 0.25, fontSize: '11px', minWidth: '80px' }} onClick={() => handleOrderAnalysis(order._id, 0)}>ANALYZE</Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                )}
-
-                {/* Tab 4: Customer Insights */}
-                {tabValue === 4 && (
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={4}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', height: '100%' }}>
-                                <Typography sx={{ fontWeight: 900, color: luxuryColors.maroon, fontFamily: '"Playfair Display", serif', mb: 3, fontSize: '18px' }}>
-                                    Customer Registry
+                                <Typography sx={{ fontWeight: 900, color: luxuryColors.maroon, fontFamily: '"Playfair Display", serif', mb: 2, fontSize: '18px' }}>
+                                    Sales & CRM
                                 </Typography>
+
+                                <Box sx={{ mb: 2.5 }}>
+                                    <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#999', mb: 1, letterSpacing: '0.5px' }}>SEARCH CUSTOMERS</Typography>
+                                    <input
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 14px',
+                                            borderRadius: '12px',
+                                            border: '1px solid #EAEAEA',
+                                            fontSize: '13px',
+                                            backgroundColor: '#FAFAFA',
+                                            color: luxuryColors.text,
+                                            outline: 'none'
+                                        }}
+                                        placeholder="Name or email..."
+                                        value={customerSearch}
+                                        onChange={(e) => setCustomerSearch(e.target.value)}
+                                    />
+                                </Box>
+
+                                <Box sx={{ mb: 3 }}>
+                                    <Typography sx={{ fontSize: '11px', fontWeight: 800, color: '#999', mb: 1, letterSpacing: '0.5px' }}>REGISTRATION PERIOD</Typography>
+                                    <Stack direction="row" spacing={0.5}>
+                                        {['all', 'week', 'month'].map((f) => (
+                                            <Button
+                                                key={f}
+                                                size="small"
+                                                onClick={() => setTimeFilter(f)}
+                                                sx={{
+                                                    fontSize: '10px',
+                                                    px: 1.5,
+                                                    borderRadius: '50px',
+                                                    textTransform: 'uppercase',
+                                                    fontWeight: 700,
+                                                    bgcolor: timeFilter === f ? luxuryColors.gold : 'transparent',
+                                                    color: timeFilter === f ? 'white' : '#666',
+                                                    border: timeFilter === f ? 'none' : '1px solid #EEE',
+                                                    '&:hover': {
+                                                        bgcolor: timeFilter === f ? luxuryColors.gold : '#F5F5F5'
+                                                    }
+                                                }}
+                                            >
+                                                {f === 'all' ? 'All Time' : f === 'week' ? 'Last Week' : 'Last Month'}
+                                            </Button>
+                                        ))}
+                                    </Stack>
+                                </Box>
+
+                                <Divider sx={{ mb: 2, opacity: 0.5 }} />
+
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    onClick={() => setViewMode('orders')}
+                                    startIcon={<History />}
+                                    sx={{
+                                        mb: 3,
+                                        py: 1.25,
+                                        borderRadius: '12px',
+                                        bgcolor: viewMode === 'orders' ? luxuryColors.maroon : 'rgba(76, 0, 19, 0.04)',
+                                        color: viewMode === 'orders' ? 'white' : luxuryColors.maroon,
+                                        boxShadow: 'none',
+                                        fontWeight: 800,
+                                        fontSize: '12px',
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            bgcolor: viewMode === 'orders' ? '#3d0010' : 'rgba(76, 0, 19, 0.08)',
+                                            boxShadow: 'none'
+                                        }
+                                    }}
+                                >
+                                    Global Sales Registry
+                                </Button>
+
+                                <Typography sx={{ fontSize: '11px', fontWeight: 900, color: luxuryColors.gold, letterSpacing: '1px', mb: 2 }}>CUSTOMER REGISTRY</Typography>
+
                                 {loadingUsers ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
                                 ) : (
-                                    <Stack spacing={1.5}>
-                                        {users.map(u => (
+                                    <Stack spacing={1}>
+                                        {filteredUsers.map(u => (
                                             <Paper
                                                 key={u.email}
-                                                onClick={() => fetchUserInsights(u.email)}
+                                                onClick={() => {
+                                                    fetchUserInsights(u.email);
+                                                    setViewMode('customer');
+                                                }}
                                                 sx={{
                                                     p: 2,
                                                     borderRadius: '16px',
                                                     cursor: 'pointer',
-                                                    bgcolor: selectedUserInsights?.user?.email === u.email ? 'rgba(76, 0, 19, 0.05)' : 'white',
+                                                    bgcolor: (viewMode === 'customer' && selectedUserInsights?.user?.email === u.email) ? 'rgba(76, 0, 19, 0.05)' : 'white',
                                                     border: '1px solid',
-                                                    borderColor: selectedUserInsights?.user?.email === u.email ? luxuryColors.maroon : 'rgba(0,0,0,0.05)',
+                                                    borderColor: (viewMode === 'customer' && selectedUserInsights?.user?.email === u.email) ? luxuryColors.maroon : 'rgba(0,0,0,0.05)',
                                                     transition: '0.2s',
                                                     '&:hover': { bgcolor: 'rgba(76, 0, 19, 0.02)' }
                                                 }}
@@ -1184,121 +1255,172 @@ const AdminPanel = ({ onSignOut }) => {
                         </Grid>
 
                         <Grid item xs={12} md={8}>
-                            {loadingInsights ? (
-                                <Paper sx={{ p: 5, borderRadius: '24px', textAlign: 'center', minHeight: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                    <CircularProgress />
-                                </Paper>
-                            ) : selectedUserInsights ? (
-                                <Stack spacing={3}>
-                                    {/* User Summary Card */}
-                                    <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'white' }}>
-                                        <Typography sx={{ color: luxuryColors.gold, fontWeight: 900, fontSize: '11px', letterSpacing: '1px', mb: 2 }}>ACCOUNT OVERVIEW</Typography>
-                                        <Grid container spacing={3}>
-                                            <Grid item xs={6} md={3}>
-                                                <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>SHIPPING ADDRESS</Typography>
-                                                <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.user.shipping_address || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid item xs={6} md={3}>
-                                                <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>CONTACT</Typography>
-                                                <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.user.contact_details || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid item xs={6} md={3}>
-                                                <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>BAG ITEMS</Typography>
-                                                <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.cart.length} items</Typography>
-                                            </Grid>
-                                            <Grid item xs={6} md={3}>
-                                                <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>WISHLIST</Typography>
-                                                <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.favorites.length} items</Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </Paper>
-
-                                    {/* Shopping Bag & Wishlist Grid */}
-                                    <Grid container spacing={3}>
-                                        <Grid item xs={12} md={6}>
-                                            <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                                <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <ShoppingBag sx={{ fontSize: 18, color: luxuryColors.maroon }} /> Active Bag
-                                                </Typography>
-                                                <Stack spacing={1.5}>
-                                                    {selectedUserInsights.cart.length === 0 ? (
-                                                        <Typography sx={{ fontSize: '12px', color: '#999', textAlign: 'center', py: 2 }}>Bag is empty</Typography>
-                                                    ) : selectedUserInsights.cart.map((item, i) => (
-                                                        <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', pb: 1, borderBottom: '1px solid #f5f5f5' }}>
-                                                            <Box component="img" src={item.preview_url} sx={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }} />
-                                                            <Box>
-                                                                <Typography sx={{ fontSize: '13px', fontWeight: 700 }}>{item.product_name}</Typography>
-                                                                <Typography sx={{ fontSize: '10px', color: '#888' }}>{item.fabric_type} • {item.dress_type}</Typography>
-                                                            </Box>
-                                                        </Box>
-                                                    ))}
-                                                </Stack>
-                                            </Paper>
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                                <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Visibility sx={{ fontSize: 18, color: luxuryColors.gold }} /> Wishlist
-                                                </Typography>
-                                                <Stack spacing={1.5}>
-                                                    {selectedUserInsights.favorites.length === 0 ? (
-                                                        <Typography sx={{ fontSize: '12px', color: '#999', textAlign: 'center', py: 2 }}>Wishlist is empty</Typography>
-                                                    ) : selectedUserInsights.favorites.map((item, i) => (
-                                                        <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', pb: 1, borderBottom: '1px solid #f5f5f5' }}>
-                                                            <Box component="img" src={item.preview_url || item.image} sx={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }} />
-                                                            <Box>
-                                                                <Typography sx={{ fontSize: '13px', fontWeight: 700 }}>{item.product_name || item.name}</Typography>
-                                                                <Typography sx={{ fontSize: '10px', color: '#888' }}>Interested in: {item.tag || 'Traditional'}</Typography>
-                                                            </Box>
-                                                        </Box>
-                                                    ))}
-                                                </Stack>
-                                            </Paper>
-                                        </Grid>
-                                    </Grid>
-
-                                    {/* Recent Orders */}
-                                    <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                                        <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <History sx={{ fontSize: 18, color: '#388e3c' }} /> Order History
+                            {viewMode === 'orders' && (
+                                <Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                        <Typography sx={{ fontWeight: 900, fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontSize: '20px' }}>
+                                            {timeFilter === 'all' ? 'Full Order Registry' : `Orders: ${timeFilter === 'week' ? 'Last Week' : 'Last Month'}`}
                                         </Typography>
-                                        <TableContainer>
-                                            <Table size="small">
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>DATE</TableCell>
-                                                        <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>ID</TableCell>
-                                                        <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>ITEMS</TableCell>
-                                                        <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>TOTAL</TableCell>
+                                        <Chip label={`${filteredOrders.length} MATCHING ORDERS`} sx={{ bgcolor: luxuryColors.gold, color: 'white', fontWeight: 800, fontSize: '10px' }} />
+                                    </Box>
+                                    <TableContainer component={Paper} sx={{ borderRadius: '20px', border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 10px 40px rgba(0,0,0,0.02)' }}>
+                                        <Table size="small">
+                                            <TableHead sx={{ bgcolor: '#FAFAFA' }}>
+                                                <TableRow>
+                                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>ORDER ID</TableCell>
+                                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>CUSTOMER</TableCell>
+                                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>TOTAL</TableCell>
+                                                    <TableCell sx={{ fontWeight: 900, color: luxuryColors.maroon, fontSize: '10px', letterSpacing: '1px' }}>ACTION</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {loadingOrders ? (
+                                                    <TableRow><TableCell colSpan={4} align="center" sx={{ py: 6 }}><CircularProgress size={24} /></TableCell></TableRow>
+                                                ) : filteredOrders.map(order => (
+                                                    <TableRow key={order._id}>
+                                                        <TableCell sx={{ fontWeight: 700, color: luxuryColors.maroon, fontSize: '13px' }}>#{order._id.slice(-8).toUpperCase()}</TableCell>
+                                                        <TableCell sx={{ fontSize: '13px' }}>{order.user_email}</TableCell>
+                                                        <TableCell sx={{ fontWeight: 800, fontSize: '13px' }}>₹{order.total_amount}</TableCell>
+                                                        <TableCell>
+                                                            <Button size="small" variant="outlined" sx={{ borderRadius: '50px', color: luxuryColors.gold, borderColor: luxuryColors.gold, py: 0.25, fontSize: '11px', minWidth: '80px' }} onClick={() => handleOrderAnalysis(order._id, 0)}>ANALYZE</Button>
+                                                        </TableCell>
                                                     </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {selectedUserInsights.orders.map(o => (
-                                                        <TableRow key={o._id}>
-                                                            <TableCell sx={{ fontSize: '12px' }}>{new Date(o.order_date).toLocaleDateString()}</TableCell>
-                                                            <TableCell sx={{ fontSize: '12px', fontWeight: 600 }}>#{o._id.slice(-6).toUpperCase()}</TableCell>
-                                                            <TableCell sx={{ fontSize: '12px' }}>{o.items.length} items</TableCell>
-                                                            <TableCell sx={{ fontSize: '12px', fontWeight: 700 }}>₹{o.total_amount}</TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    {selectedUserInsights.orders.length === 0 && (
-                                                        <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2, color: '#999', fontSize: '12px' }}>No orders yet</TableCell></TableRow>
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </TableContainer>
-                                    </Paper>
-                                </Stack>
-                            ) : (
-                                <Paper sx={{ p: 5, borderRadius: '24px', textAlign: 'center', bgcolor: 'white', border: '1px solid rgba(0,0,0,0.05)', opacity: 0.8, minHeight: 450, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                                    <Person sx={{ fontSize: 48, color: luxuryColors.gold, mb: 2, opacity: 0.3 }} />
-                                    <Typography sx={{ fontWeight: 800, mb: 0.5, fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontSize: '18px' }}>
-                                        Customer Explorer
-                                    </Typography>
-                                    <Typography sx={{ color: '#666', maxWidth: 350, mx: 'auto', fontSize: '13px' }}>
-                                        Select a customer from the registry to view their shopping bag, wishlist and personal order history.
-                                    </Typography>
-                                </Paper>
+                                                ))}
+                                                {filteredOrders.length === 0 && !loadingOrders && (
+                                                    <TableRow><TableCell colSpan={4} align="center" sx={{ py: 6, color: '#999' }}>No matching orders found</TableCell></TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Box>
+                            )}
+
+                            {viewMode === 'customer' && (
+                                <Box>
+                                    {loadingInsights ? (
+                                        <Paper sx={{ p: 5, borderRadius: '24px', textAlign: 'center', minHeight: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <CircularProgress />
+                                        </Paper>
+                                    ) : selectedUserInsights ? (
+                                        <Stack spacing={3}>
+                                            {/* User Summary Card */}
+                                            <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'white' }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                                    <Avatar sx={{ bgcolor: luxuryColors.maroon, color: 'white' }}>{selectedUserInsights.user.name?.[0]}</Avatar>
+                                                    <Box>
+                                                        <Typography sx={{ fontWeight: 900, fontSize: '18px', color: luxuryColors.maroon }}>{selectedUserInsights.user.name}</Typography>
+                                                        <Typography sx={{ fontSize: '12px', color: '#666' }}>{selectedUserInsights.user.email}</Typography>
+                                                    </Box>
+                                                </Box>
+                                                <Divider sx={{ mb: 2, opacity: 0.5 }} />
+                                                <Grid container spacing={3}>
+                                                    <Grid item xs={6} md={3}>
+                                                        <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>SHIPPING ADDRESS</Typography>
+                                                        <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.user.shipping_address || 'Not provided'}</Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6} md={3}>
+                                                        <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>CONTACT</Typography>
+                                                        <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.user.contact_details || 'Not provided'}</Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6} md={3}>
+                                                        <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>BAG ITEMS</Typography>
+                                                        <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.cart.length} items</Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6} md={3}>
+                                                        <Typography sx={{ fontSize: '11px', color: '#999', mb: 0.5 }}>WISHLIST</Typography>
+                                                        <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{selectedUserInsights.favorites.length} items</Typography>
+                                                    </Grid>
+                                                </Grid>
+                                            </Paper>
+
+                                            {/* Shopping Bag & Wishlist Grid */}
+                                            <Grid container spacing={3}>
+                                                <Grid item xs={12} md={6}>
+                                                    <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <ShoppingBag sx={{ fontSize: 18, color: luxuryColors.maroon }} /> Active Bag
+                                                        </Typography>
+                                                        <Stack spacing={1.5}>
+                                                            {selectedUserInsights.cart.length === 0 ? (
+                                                                <Typography sx={{ fontSize: '12px', color: '#999', textAlign: 'center', py: 2 }}>Bag is empty</Typography>
+                                                            ) : selectedUserInsights.cart.map((item, i) => (
+                                                                <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', pb: 1, borderBottom: '1px solid #f5f5f5' }}>
+                                                                    <Box component="img" src={item.preview_url} sx={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }} />
+                                                                    <Box>
+                                                                        <Typography sx={{ fontSize: '13px', fontWeight: 700 }}>{item.product_name}</Typography>
+                                                                        <Typography sx={{ fontSize: '10px', color: '#888' }}>{item.fabric_type} • {item.dress_type}</Typography>
+                                                                    </Box>
+                                                                </Box>
+                                                            ))}
+                                                        </Stack>
+                                                    </Paper>
+                                                </Grid>
+                                                <Grid item xs={12} md={6}>
+                                                    <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Visibility sx={{ fontSize: 18, color: luxuryColors.gold }} /> Wishlist
+                                                        </Typography>
+                                                        <Stack spacing={1.5}>
+                                                            {selectedUserInsights.favorites.length === 0 ? (
+                                                                <Typography sx={{ fontSize: '12px', color: '#999', textAlign: 'center', py: 2 }}>Wishlist is empty</Typography>
+                                                            ) : selectedUserInsights.favorites.map((item, i) => (
+                                                                <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', pb: 1, borderBottom: '1px solid #f5f5f5' }}>
+                                                                    <Box component="img" src={item.preview_url || item.image} sx={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover' }} />
+                                                                    <Box>
+                                                                        <Typography sx={{ fontSize: '13px', fontWeight: 700 }}>{item.product_name || item.name}</Typography>
+                                                                        <Typography sx={{ fontSize: '10px', color: '#888' }}>Interested in: {item.tag || 'Traditional'}</Typography>
+                                                                    </Box>
+                                                                </Box>
+                                                            ))}
+                                                        </Stack>
+                                                    </Paper>
+                                                </Grid>
+                                            </Grid>
+
+                                            {/* Recent Orders */}
+                                            <Paper sx={{ p: 3, borderRadius: '24px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                <Typography sx={{ fontWeight: 800, fontSize: '14px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <History sx={{ fontSize: 18, color: '#388e3c' }} /> Order History
+                                                </Typography>
+                                                <TableContainer>
+                                                    <Table size="small">
+                                                        <TableHead>
+                                                            <TableRow>
+                                                                <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>DATE</TableCell>
+                                                                <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>ID</TableCell>
+                                                                <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>ITEMS</TableCell>
+                                                                <TableCell sx={{ fontSize: '11px', fontWeight: 800 }}>TOTAL</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {selectedUserInsights.orders.map(o => (
+                                                                <TableRow key={o._id}>
+                                                                    <TableCell sx={{ fontSize: '12px' }}>{new Date(o.order_date).toLocaleDateString()}</TableCell>
+                                                                    <TableCell sx={{ fontSize: '12px', fontWeight: 600 }}>#{o._id.slice(-6).toUpperCase()}</TableCell>
+                                                                    <TableCell sx={{ fontSize: '12px' }}>{o.items.length} items</TableCell>
+                                                                    <TableCell sx={{ fontSize: '12px', fontWeight: 700 }}>₹{o.total_amount}</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                            {selectedUserInsights.orders.length === 0 && (
+                                                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 2, color: '#999', fontSize: '12px' }}>No orders yet</TableCell></TableRow>
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </TableContainer>
+                                            </Paper>
+                                        </Stack>
+                                    ) : (
+                                        <Paper sx={{ p: 5, borderRadius: '24px', textAlign: 'center', bgcolor: 'white', border: '1px solid rgba(0,0,0,0.05)', opacity: 0.8, minHeight: 450, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Person sx={{ fontSize: 48, color: luxuryColors.gold, mb: 2, opacity: 0.3 }} />
+                                            <Typography sx={{ fontWeight: 800, mb: 0.5, fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontSize: '18px' }}>
+                                                Customer Explorer
+                                            </Typography>
+                                            <Typography sx={{ color: '#666', maxWidth: 350, mx: 'auto', fontSize: '13px' }}>
+                                                Select a customer from the registry to view their shopping bag, wishlist and personal order history.
+                                            </Typography>
+                                        </Paper>
+                                    )}
+                                </Box>
                             )}
                         </Grid>
                     </Grid>

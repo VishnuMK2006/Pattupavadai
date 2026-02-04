@@ -16,6 +16,7 @@ import {
     Box
 } from '@mui/material';
 import { AddCircleOutline } from '@mui/icons-material';
+import { validateAddress } from "../utils/addressValidation";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -43,6 +44,12 @@ export default function CompleteProfileModal({ open, user, onComplete, onSkip })
     const handleSubmit = async () => {
         if (!isFormValid) {
             setError("Please provide a valid shipping address and an Indian contact number.");
+            return;
+        }
+
+        const addressValidation = validateAddress(form.shippingAddress);
+        if (addressValidation !== "Valid Address") {
+            setError(addressValidation);
             return;
         }
 

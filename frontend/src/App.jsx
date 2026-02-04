@@ -85,6 +85,7 @@ function App() {
 
   // Generated product image state
   const [generatedProductImage, setGeneratedProductImage] = useState(null);
+  const [generatedImageName, setGeneratedImageName] = useState(null);
   const [isGeneratingProductImage, setIsGeneratingProductImage] = useState(false);
   const [showAddToCartSuccess, setShowAddToCartSuccess] = useState(false);
   const [cartSuccessMsg, setCartSuccessMsg] = useState("Added to cart successfully! 🎉");
@@ -208,6 +209,7 @@ function App() {
 
     setIsGeneratingProductImage(true);
     setGeneratedProductImage(null);
+    setGeneratedImageName(null);
 
     const payload = {
       product_name: activeProduct.name,
@@ -234,6 +236,7 @@ function App() {
       if (!response.ok) throw new Error(data.detail || "Failed to generate");
 
       setGeneratedProductImage(`data:image/png;base64,${data.image_base64}`);
+      setGeneratedImageName(data.image_name);
     } catch (err) {
       console.error(err);
       alert(`Failed to generate image: ${err.message}`);
@@ -269,7 +272,9 @@ function App() {
       top_color: topColor || productToUse.top_color,
       bottom_color: bottomColor || productToUse.bottom_color,
       accent: productToUse.accent,
-      preview_url: generatedProductImage || productToUse.image
+      preview_url: generatedProductImage || productToUse.image,
+      image_name: generatedImageName,
+      quantity: productToUse.quantity || 1
     };
 
     const isAlreadyInCart = cart.some(cartItem => (cartItem.id || cartItem.product_id) === newItem.product_id);
@@ -313,7 +318,8 @@ function App() {
       top_color: topColor,
       bottom_color: bottomColor,
       accent: activeProduct.accent,
-      preview_url: generatedProductImage || activeProduct.image
+      preview_url: generatedProductImage || activeProduct.image,
+      image_name: generatedImageName
     };
 
     setCart([...cart, newItem]);
@@ -341,7 +347,8 @@ function App() {
       top_color: topColor,
       bottom_color: bottomColor,
       accent: productToUse.accent,
-      preview_url: generatedProductImage || productToUse.image
+      preview_url: generatedProductImage || productToUse.image,
+      image_name: generatedImageName
     };
 
     try {
@@ -427,7 +434,7 @@ function App() {
     const itemsToBuy = buyingItem ? [buyingItem] : cart;
 
     // Calculate total including the ₹7 fee shown in OrderSummary
-    const itemTotal = itemsToBuy.reduce((sum, item) => sum + calculatePrice(item), 0);
+    const itemTotal = itemsToBuy.reduce((sum, item) => sum + (calculatePrice(item) * (item.quantity || 1)), 0);
     const totalAmount = itemTotal + 7;
 
     // Ensure all items have product_id and product_name (backend requirements)
@@ -776,6 +783,16 @@ function App() {
           user={user}
           onComplete={handleProfileComplete}
           onSkip={() => setIsCompleteProfileOpen(false)}
+        />
+
+        <UserProfileModal
+          open={isUserDetailsOpen}
+          user={user}
+          onUpdate={(updatedUser) => {
+            setUser(updatedUser);
+            localStorage.setItem("pp_user", JSON.stringify(updatedUser));
+          }}
+          onClose={() => setIsUserDetailsOpen(false)}
         />
 
         {/* Global Snackbars placed here to be visible in all mainContent views */}
