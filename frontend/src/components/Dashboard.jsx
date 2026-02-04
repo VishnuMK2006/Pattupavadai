@@ -125,10 +125,15 @@ function OrderCard({ order }) {
             <Box sx={{ display: 'flex', gap: 3 }}>
               <Box
                 component="img"
-                src={`/images/orders/${order._id}_${index}.png`}
+                src={item.image_name ? `/images/orders/${order._id}_${index}.png` : (item.image || item.preview_url || item.card_image || "https://placehold.co/300x300?text=Heirloom+Piece")}
                 onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://placehold.co/300x300?text=Heirloom+Piece";
+                  if (item.image_name) {
+                    e.target.onerror = null;
+                    e.target.src = item.image || item.preview_url || item.card_image || "https://placehold.co/300x300?text=Heirloom+Piece";
+                  } else {
+                    e.target.onerror = null;
+                    e.target.src = item.card_image || "https://placehold.co/300x300?text=Heirloom+Piece";
+                  }
                 }}
                 sx={{
                   width: 120,
@@ -246,7 +251,7 @@ export default function Dashboard({ user, onBack }) {
         bgcolor: '#FFFFFF',
         borderBottom: '1px solid rgba(0,0,0,0.05)',
         position: 'sticky',
-        top: 80,
+        top: 0,
         zIndex: 10,
       }}>
         <Box sx={{

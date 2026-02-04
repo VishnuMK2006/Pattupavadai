@@ -26,6 +26,7 @@ import {
     Star,
     PlayCircleOutline,
     ArrowForwardIos,
+    ArrowBackIos, // Added for carousel
     Instagram,
     Facebook,
     Pinterest,
@@ -46,26 +47,70 @@ const luxuryColors = {
 const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
 
-export default function LandingPage({ onAuthSuccess }) {
+// New ProductCard Component
+const ProductCard = ({ product, onClick }) => {
+    return (
+        <Box
+            onClick={onClick}
+            sx={{ cursor: 'pointer', height: '100%' }}
+        >
+            <Box sx={{
+                height: 300,
+                width: '100%',
+                borderRadius: '24px',
+                overflow: 'hidden',
+                mb: 2,
+                position: 'relative',
+                bgcolor: '#F8F8F8',
+                boxShadow: '0 30px 60px rgba(76, 0, 19, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <Box
+                    component="img"
+                    src={product.img}
+                    sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            </Box>
+            <Box sx={{ height: 40, overflow: 'hidden', mb: 0.5 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '15px', lineHeight: 1.3 }}>{product.title}</Typography>
+            </Box>
+            <Typography sx={{ color: luxuryColors.gold, fontWeight: 800 }}>{product.price}</Typography>
+        </Box>
+    );
+};
+
+export default function LandingPage({ onAuthSuccess, user, onGoToApp, products = [] }) {
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const { scrollYProgress } = useScroll();
     const navOpacity = useTransform(scrollYProgress, [0, 100], [1, 0.95]);
 
     const handleProtectedAction = (e) => {
         if (e) e.preventDefault();
-        setIsLoginOpen(true);
+        if (user) {
+            onGoToApp?.();
+        } else {
+            setIsLoginOpen(true);
+        }
     };
 
     const categories = [
         'Pattu Pavadai', 'Ethnic Gowns', 'Aari Work', 'Party Frocks', 'Budget Friendly', 'Ready to Dispatch'
     ];
 
-    const bestSellers = [
-        { id: 10, title: 'Traditional Silk Pavadai', price: '₹1,999', img: '/images/Untitled design (20).png' },
-        { id: 11, title: 'Designer Ethnic Gown', price: '₹2,499', img: '/images/Untitled design (21).png' },
-        { id: 13, title: 'Golden Zari Pattu', price: '₹2,299', img: '/images/Untitled design (22).png' },
-        { id: 14, title: 'Royal Maroon Frock', price: '₹1,699', img: '/images/Untitled design (23).png' },
-    ];
+    const bestSellers = products && products.length > 0 ? products.slice(0, 4).map(p => ({
+        id: p._id,
+        title: p.name,
+        price: `₹${p.price}`,
+        img: p.card_image,
+        video: p.video_url, // Added video
+        gallery: p.gallery_images // Added gallery
+    })) : [];
 
     const videoShorts = [
         { id: 1, src: '/short_videos/v1.mp4', title: 'Silk Glow' },
@@ -159,7 +204,7 @@ export default function LandingPage({ onAuthSuccess }) {
                                 }
                             }}
                         >
-                            SIGN IN
+                            {user ? 'ENTER APP' : 'SIGN IN'}
                         </Button>
                     </Stack>
                 </Toolbar>
@@ -322,57 +367,21 @@ export default function LandingPage({ onAuthSuccess }) {
             </Container>
 
             {/* Best Sellers Section */}
-            <Container maxWidth={false} sx={{ pt: 12, pb: 5, px: { xs: 2, md: 10 } }}>
-                <Box sx={{ mb: 8, textAlign: 'center' }}>
-                    <Typography variant="overline" sx={{ color: luxuryColors.gold, fontWeight: 800, letterSpacing: '6px' }}>TRUSTED FAVORITES</Typography>
-                    <Typography variant="h2" sx={{ fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontWeight: 900, mt: 1 }}>The Best Sellers</Typography>
-                </Box>
-                <Grid container spacing={4}>
-                    {bestSellers.map((product) => (
-                        <Grid item xs={6} sm={6} md={3} key={product.id}>
-                            <Box onClick={handleProtectedAction} sx={{ cursor: 'pointer', height: '100%' }}>
-                                <Box sx={{
-                                    height: '280px',
-                                    width: '100%',
-                                    borderRadius: '20px',
-                                    overflow: 'hidden',
-                                    mb: 2,
-                                    position: 'relative',
-                                    '&:hover .quick-add': { opacity: 1, y: 0 },
-                                    '&:hover img': { transform: 'scale(1.1)' }
-                                }}>
-                                    <Box
-                                        component="img"
-                                        src={product.img}
-                                        sx={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                            transition: '0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-                                        }}
-                                    />
-                                    <Box className="quick-add" sx={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bgcolor: 'rgba(255,255,255,0.95)',
-                                        backdropFilter: 'blur(5px)',
-                                        p: 2,
-                                        opacity: 0,
-                                        transform: 'translateY(100%)',
-                                        transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                                    }}>
-                                        <Button fullWidth sx={{ color: luxuryColors.maroon, fontWeight: 800, fontSize: '12px' }}>QUICK ADD +</Button>
-                                    </Box>
-                                </Box>
-                                <Typography sx={{ fontWeight: 700, fontSize: '15px' }}>{product.title}</Typography>
-                                <Typography sx={{ color: luxuryColors.gold, fontWeight: 800 }}>{product.price}</Typography>
-                            </Box>
-                        </Grid>
-                    ))}
-                </Grid>
-            </Container>
+            {bestSellers.length > 0 && (
+                <Container maxWidth="xl" sx={{ pt: 12, pb: 5, px: { xs: 2, md: 6 } }}>
+                    <Box sx={{ mb: 8, textAlign: 'center' }}>
+                        <Typography variant="overline" sx={{ color: luxuryColors.gold, fontWeight: 800, letterSpacing: '6px' }}>TRUSTED FAVORITES</Typography>
+                        <Typography variant="h2" sx={{ fontFamily: '"Playfair Display", serif', color: luxuryColors.maroon, fontWeight: 900, mt: 1 }}>The Best Sellers</Typography>
+                    </Box>
+                    <Grid container spacing={4}>
+                        {bestSellers.map((product) => (
+                            <Grid item xs={6} sm={6} md={3} key={product.id}>
+                                <ProductCard product={product} onClick={handleProtectedAction} />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Container>
+            )}
 
             {/* Shop by Video Section */}
             <Box sx={{ pt: 12, pb: 2 }}>
@@ -549,27 +558,11 @@ export default function LandingPage({ onAuthSuccess }) {
                 </Container>
             </Box>
 
-            {/* WhatsApp Floating Button */}
-            <IconButton
-                sx={{
-                    position: 'fixed',
-                    bottom: 40,
-                    right: 40,
-                    bgcolor: '#25D366',
-                    color: 'white',
-                    p: 2,
-                    boxShadow: '0 10px 30px rgba(37, 211, 102, 0.3)',
-                    '&:hover': { bgcolor: '#128C7E' },
-                    zIndex: 1200
-                }}
-                onClick={() => window.open('https://wa.me/91XXXXXXXXXX')}
-            >
-                <WhatsApp sx={{ fontSize: 32 }} />
-            </IconButton>
+
 
             {/* Footer */}
             <Box sx={{ bgcolor: luxuryColors.maroon, pt: 6, pb: 4, color: 'white' }}>
-                <Container maxWidth="lg">
+                <Container maxWidth="xl" sx={{ px: { xs: 2, md: 6 } }}>
                     <Grid container spacing={8} sx={{ mb: 10 }}>
                         <Grid item xs={12} md={4}>
                             <Typography variant="h4" sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 900, mb: 3 }}>Kuzhavi_Kids</Typography>
