@@ -58,6 +58,13 @@ export default function Chatbot({ storageKey = 'chatHistory', controlledOpen = n
     if (!value && onClose) onClose();
   } : setInternalIsOpen;
 
+  // Reset minimize state when controlled open changes to true
+  useEffect(() => {
+    if (controlledOpen === true && isMinimized) {
+      setIsMinimized(false);
+    }
+  }, [controlledOpen, isMinimized]);
+
   // Load chat history from session storage
   useEffect(() => {
     const savedMessages = sessionStorage.getItem(storageKey);
@@ -223,16 +230,6 @@ export default function Chatbot({ storageKey = 'chatHistory', controlledOpen = n
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <IconButton
-                size="small"
-                onClick={handleMinimize}
-                sx={{
-                  color: 'white',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                }}
-              >
-                <Minimize sx={{ fontSize: 18 }} />
-              </IconButton>
               <IconButton
                 size="small"
                 onClick={handleClose}
